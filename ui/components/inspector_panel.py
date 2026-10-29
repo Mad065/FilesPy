@@ -1,121 +1,114 @@
-"""File inspector and preview panel with image thumbnails and metadata."""
+"""File inspector and preview panel with image thumbnails and metadata in Flet."""
+import base64
+import io
 from pathlib import Path
 from typing import Optional
-import customtkinter as ctk
+import flet as ft
 from PIL import Image
 
 from core.models import FileItem
-from ui.theme import format_bytes, format_timestamp
+from ui.theme import (
+    COLOR_BORDER_DARK,
+    COLOR_CARD_DARK,
+    COLOR_PRIMARY,
+    COLOR_SURFACE_DARK,
+    COLOR_TEXT_MUTED,
+    COLOR_TEXT_PRIMARY,
+    format_bytes,
+    format_timestamp,
+    safe_update,
+)
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff"}
 TEXT_EXTENSIONS = {".txt", ".py", ".json", ".csv", ".md", ".html", ".css", ".xml", ".log", ".yaml", ".yml"}
 
 
-class InspectorPanel(ctk.CTkFrame):
+class InspectorPanel(ft.Container):
     """Side panel displaying file details, thumbnail preview, and properties."""
 
-    def __init__(self, master, **kwargs):
-        super().__init__(master, **kwargs)
+    def __init__(self):
+        super().__init__()
+        self.width = 260
         self.current_item: Optional[FileItem] = None
-        self._thumb_image: Optional[ctk.CTkImage] = None
 
         self._build_widgets()
 
     def _build_widgets(self):
-        lbl_title = ctk.CTkLabel(
-            self,
-            text="Vista Previa e Inspección",
-            font=ctk.CTkFont(size=13, weight="bold"),
-        )
-        lbl_title.pack(anchor="w", padx=12, pady=(12, 8))
-
-        # Thumbnail / Preview Container
-        self.preview_container = ctk.CTkFrame(self, height=180, fg_color=("gray85", "gray20"))
-        self.preview_container.pack(fill="x", padx=12, pady=(0, 10))
-        self.preview_container.pack_propagate(False)
-
-        self.preview_label = ctk.CTkLabel(
-            self.preview_container,
-            text="Selecciona un archivo\npara ver su vista previa",
-            font=ctk.CTkFont(size=12),
-            text_color="gray",
-        )
-        self.preview_label.pack(expand=True)
-
-        # Text snippet preview (hidden by default)
-        self.text_preview = ctk.CTkTextbox(
-            self.preview_container,
-            font=ctk.CTkFont(family="Courier", size=10),
-            wrap="word",
+        lbl_title = ft.Text(
+            value="Vista Previa e Inspeccion",
+            size=13,
+            weight=ft.FontWeight.W_600,
+            color=COLOR_TEXT_PRIMARY,
         )
 
-        # File Properties Section
-        self.props_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.props_frame.pack(fill="both", expand=True, padx=12, pady=5)
+        # Preview Container
+        self.preview_content = ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Icon(ft.Icons.IMAGE_OUTLINED, size=32, color=COLOR_TEXT_MUTED),
+                    ft.Text("Selecciona un archivo\npara ver su vista previa", size=11, color=COLOR_TEXT_MUTED, text_align=ft.TextAlign.CENTER),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            bgcolor=COLOR_CARD_DARK,
+            border_radius=8,
+            height=160,
+            alignment=ft.Alignment.CENTER,
+            border=ft.Border.all(1, COLOR_BORDER_DARK),
+        )
 
-        self.lbl_name_title = ctk.CTkLabel(
-            self.props_frame, text="Nombre Original:", font=ctk.CTkFont(size=11, weight="bold")
-        )
-        self.lbl_name_title.pack(anchor="w")
-        self.lbl_name = ctk.CTkLabel(
-            self.props_frame, text="-", font=ctk.CTkFont(size=11), wraplength=220, justify="left"
-        )
-        self.lbl_name.pack(anchor="w", pady=(0, 6))
+        # Property Labels
+        self.txt_orig_name = ft.Text("-", size=11, color=COLOR_TEXT_PRIMARY, selectable=True)
+        self.txt_new_name = ft.Text("-", size=11, color=COLOR_PRIMARY, weight=ft.FontWeight.W_600, selectable=True)
+        self.txt_size = ft.Text("-", size=11, color=COLOR_TEXT_PRIMARY)
+        self.txt_mtime = ft.Text("-", size=11, color=COLOR_TEXT_PRIMARY)
+        self.txt_dest_folder = ft.Text("-", size=11, color=COLOR_TEXT_MUTED, selectable=True)
 
-        self.lbl_new_title = ctk.CTkLabel(
-            self.props_frame, text="Nuevo Nombre:", font=ctk.CTkFont(size=11, weight="bold")
-        )
-        self.lbl_new_title.pack(anchor="w")
-        self.lbl_new_name = ctk.CTkLabel(
-            self.props_frame, text="-", font=ctk.CTkFont(size=11), wraplength=220, justify="left",
-            text_color="#10B981"
-        )
-        self.lbl_new_name.pack(anchor="w", pady=(0, 6))
+        def make_prop_box(label: str, control: ft.Control):
+            return ft.Column(
+                controls=[
+                    ft.Text(label, size=10, weight=ft.FontWeight.W_600, color=COLOR_TEXT_MUTED),
+                    control,
+                ],
+                spacing=2,
+            )
 
-        self.lbl_size_title = ctk.CTkLabel(
-            self.props_frame, text="Tamaño:", font=ctk.CTkFont(size=11, weight="bold")
-        )
-        self.lbl_size_title.pack(anchor="w")
-        self.lbl_size = ctk.CTkLabel(
-            self.props_frame, text="-", font=ctk.CTkFont(size=11)
-        )
-        self.lbl_size.pack(anchor="w", pady=(0, 6))
+        self.padding = ft.Padding.all(12)
+        self.bgcolor = COLOR_SURFACE_DARK
+        self.border_radius = 8
+        self.border = ft.Border.all(1, COLOR_BORDER_DARK)
 
-        self.lbl_date_title = ctk.CTkLabel(
-            self.props_frame, text="Modificado:", font=ctk.CTkFont(size=11, weight="bold")
+        self.content = ft.Column(
+            controls=[
+                lbl_title,
+                self.preview_content,
+                ft.Divider(height=1, color=COLOR_BORDER_DARK),
+                make_prop_box("Nombre Original:", self.txt_orig_name),
+                make_prop_box("Nuevo Nombre:", self.txt_new_name),
+                make_prop_box("Tamano:", self.txt_size),
+                make_prop_box("Modificado:", self.txt_mtime),
+                make_prop_box("Carpeta Destino:", self.txt_dest_folder),
+            ],
+            spacing=8,
+            scroll=ft.ScrollMode.AUTO,
         )
-        self.lbl_date_title.pack(anchor="w")
-        self.lbl_date = ctk.CTkLabel(
-            self.props_frame, text="-", font=ctk.CTkFont(size=11)
-        )
-        self.lbl_date.pack(anchor="w", pady=(0, 6))
-
-        self.lbl_target_folder_title = ctk.CTkLabel(
-            self.props_frame, text="Carpeta Destino:", font=ctk.CTkFont(size=11, weight="bold")
-        )
-        self.lbl_target_folder_title.pack(anchor="w")
-        self.lbl_target_folder = ctk.CTkLabel(
-            self.props_frame, text="-", font=ctk.CTkFont(size=10), wraplength=220, justify="left"
-        )
-        self.lbl_target_folder.pack(anchor="w")
 
     def inspect_file(self, item: Optional[FileItem]):
-        """Updates the inspector with the selected FileItem."""
         self.current_item = item
         if not item:
             self._clear_display()
             return
 
-        self.lbl_name.configure(text=item.original_name)
-        self.lbl_new_name.configure(text=item.new_name)
-        self.lbl_size.configure(text=format_bytes(item.size_bytes))
-        self.lbl_date.configure(text=format_timestamp(item.modified_time))
-        self.lbl_target_folder.configure(text=str(item.target_folder))
+        self.txt_orig_name.value = item.original_name
+        self.txt_new_name.value = item.new_name
+        self.txt_size.value = format_bytes(item.size_bytes)
+        self.txt_mtime.value = format_timestamp(item.modified_time)
+        self.txt_dest_folder.value = str(item.target_folder)
 
         path = item.original_path
         ext = item.extension.lower()
 
-        # If it's an image, create thumbnail with Pillow
         if ext in IMAGE_EXTENSIONS and path.exists():
             self._show_image_thumbnail(path)
         elif ext in TEXT_EXTENSIONS and path.exists():
@@ -123,56 +116,59 @@ class InspectorPanel(ctk.CTkFrame):
         else:
             self._show_generic_icon(ext)
 
+        safe_update(self)
+
     def _show_image_thumbnail(self, path: Path):
         try:
             with Image.open(path) as img:
-                img.thumbnail((200, 160))
-                # Convert to RGB if needed
+                img.thumbnail((220, 150))
                 if img.mode not in ("RGB", "RGBA"):
                     img = img.convert("RGB")
-                
-                self._thumb_image = ctk.CTkImage(
-                    light_image=img,
-                    dark_image=img,
-                    size=img.size,
-                )
-                self.text_preview.pack_forget()
-                self.preview_label.configure(image=self._thumb_image, text="")
-                self.preview_label.pack(expand=True)
+                buf = io.BytesIO()
+                img.save(buf, format="PNG")
+                b64 = base64.b64encode(buf.getvalue()).decode()
+
+            self.preview_content.content = ft.Image(
+                src_base64=b64,
+                fit=ft.ImageFit.CONTAIN,
+                border_radius=ft.BorderRadius.all(6),
+            )
         except Exception:
             self._show_generic_icon(path.suffix)
 
     def _show_text_snippet(self, path: Path):
         try:
-            self.preview_label.pack_forget()
-            self.text_preview.pack(fill="both", expand=True, padx=4, pady=4)
-            self.text_preview.delete("1.0", "end")
             with open(path, "r", encoding="utf-8", errors="replace") as f:
-                snippet = "".join(f.readline() for _ in range(12))
-            self.text_preview.insert("1.0", snippet)
+                snippet = "".join(f.readline() for _ in range(8))
+
+            self.preview_content.content = ft.Container(
+                content=ft.Text(
+                    value=snippet,
+                    font_family="monospace",
+                    size=10,
+                    color=COLOR_TEXT_PRIMARY,
+                ),
+                padding=6,
+                alignment=ft.Alignment.TOP_LEFT,
+            )
         except Exception:
             self._show_generic_icon(path.suffix)
 
     def _show_generic_icon(self, ext: str):
-        self.text_preview.pack_forget()
-        self.preview_label.configure(
-            image=None,
-            text=f"[{ext.upper() if ext else 'ARCHIVO'}]",
-            font=ctk.CTkFont(size=18, weight="bold"),
-            text_color="gray",
+        self.preview_content.content = ft.Column(
+            controls=[
+                ft.Icon(ft.Icons.INSERT_DRIVE_FILE_OUTLINED, size=36, color=COLOR_TEXT_MUTED),
+                ft.Text(f"[{ext.upper() if ext else 'ARCHIVO'}]", size=12, weight=ft.FontWeight.W_600, color=COLOR_TEXT_MUTED),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
-        self.preview_label.pack(expand=True)
 
     def _clear_display(self):
-        self.text_preview.pack_forget()
-        self.preview_label.configure(
-            image=None,
-            text="Selecciona un archivo\npara ver su vista previa",
-            font=ctk.CTkFont(size=12),
-        )
-        self.preview_label.pack(expand=True)
-        self.lbl_name.configure(text="-")
-        self.lbl_new_name.configure(text="-")
-        self.lbl_size.configure(text="-")
-        self.lbl_date.configure(text="-")
-        self.lbl_target_folder.configure(text="-")
+        self.txt_orig_name.value = "-"
+        self.txt_new_name.value = "-"
+        self.txt_size.value = "-"
+        self.txt_mtime.value = "-"
+        self.txt_dest_folder.value = "-"
+        self._show_generic_icon("")
+        safe_update(self)

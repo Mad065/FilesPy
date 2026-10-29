@@ -1,28 +1,29 @@
-"""Action bar component containing execution, preview, and undo buttons."""
+"""Action bar component containing execution, preview, and undo buttons in Flet."""
 from typing import Callable
-import customtkinter as ctk
+import flet as ft
 
 from ui.theme import (
-    COLOR_SUCCESS,
-    COLOR_SUCCESS_HOVER,
+    COLOR_BORDER_DARK,
+    COLOR_DANGER,
     COLOR_PRIMARY,
     COLOR_PRIMARY_HOVER,
+    COLOR_SUCCESS,
+    COLOR_TEXT_MUTED,
+    COLOR_TEXT_PRIMARY,
+    safe_update,
 )
-from ui.icons import get_icon
 
 
-class ActionBar(ctk.CTkFrame):
-    """Bottom action bar with primary action buttons."""
+class ActionBar(ft.Container):
+    """Bottom action bar with primary execution buttons and summary status."""
 
     def __init__(
         self,
-        master,
         on_refresh: Callable[[], None],
         on_apply: Callable[[], None],
         on_undo: Callable[[], None],
-        **kwargs,
     ):
-        super().__init__(master, **kwargs)
+        super().__init__()
         self.on_refresh = on_refresh
         self.on_apply = on_apply
         self.on_undo = on_undo
@@ -30,86 +31,78 @@ class ActionBar(ctk.CTkFrame):
         self._build_widgets()
 
     def _build_widgets(self):
-        # Left side: Status summary label
-        self.summary_label = ctk.CTkLabel(
-            self,
-            text="Listo.",
-            font=ctk.CTkFont(size=12),
-            text_color="gray",
+        self.summary_text = ft.Text(
+            value="Listo.",
+            size=12,
+            color=COLOR_TEXT_MUTED,
+            expand=True,
         )
-        self.summary_label.pack(side="left", padx=14, pady=10)
 
-        # Right side: Action Buttons
-        self.btn_apply = ctk.CTkButton(
-            self,
-            text="Aplicar Cambios",
-            image=get_icon("check", (16, 16)),
-            compound="left",
-            fg_color=COLOR_SUCCESS,
-            hover_color=COLOR_SUCCESS_HOVER,
-            font=ctk.CTkFont(size=13, weight="bold"),
-            height=34,
-            command=self.on_apply,
+        self.btn_refresh = ft.OutlinedButton(
+            "Actualizar",
+            icon=ft.Icons.REFRESH,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, COLOR_BORDER_DARK),
+                color=COLOR_TEXT_PRIMARY,
+            ),
+            on_click=lambda _: self.on_refresh(),
         )
-        self.btn_apply.pack(side="right", padx=(6, 14), pady=10)
 
-        self.btn_undo = ctk.CTkButton(
-            self,
-            text="Deshacer",
-            image=get_icon("undo", (15, 15)),
-            compound="left",
-            fg_color="transparent",
-            border_width=1,
-            text_color=("gray10", "gray90"),
-            height=34,
-            state="disabled",
-            command=self.on_undo,
+        self.btn_undo = ft.OutlinedButton(
+            "Deshacer",
+            icon=ft.Icons.UNDO,
+            disabled=True,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, COLOR_BORDER_DARK),
+                color=COLOR_TEXT_PRIMARY,
+            ),
+            on_click=lambda _: self.on_undo(),
         )
-        self.btn_undo.pack(side="right", padx=6, pady=10)
 
-        self.btn_refresh = ctk.CTkButton(
-            self,
-            text="Actualizar",
-            image=get_icon("refresh", (15, 15)),
-            compound="left",
-            fg_color=COLOR_PRIMARY,
-            hover_color=COLOR_PRIMARY_HOVER,
-            height=34,
-            command=self.on_refresh,
+        self.btn_apply = ft.FilledButton(
+            "Aplicar Cambios",
+            icon=ft.Icons.CHECK,
+            disabled=True,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                bgcolor=COLOR_PRIMARY,
+                color="#FFFFFF",
+            ),
+            on_click=lambda _: self.on_apply(),
         )
-        self.btn_refresh.pack(side="right", padx=6, pady=10)
+
+        self.padding = ft.Padding.symmetric(horizontal=12, vertical=8)
+        self.border = ft.Border.only(top=ft.BorderSide(1, COLOR_BORDER_DARK))
+        self.content = ft.Row(
+            controls=[
+                self.summary_text,
+                self.btn_refresh,
+                self.btn_undo,
+                self.btn_apply,
+            ],
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=10,
+        )
 
     def update_state(self, modified_count: int, conflict_count: int, can_undo: bool):
-        """Updates button states and summary message based on current validation."""
-        self.btn_undo.configure(state="normal" if can_undo else "disabled")
+        self.btn_undo.disabled = not can_undo
 
         if conflict_count > 0:
-            self.btn_apply.configure(
-                state="disabled",
-                text="Hay Conflictos",
-                fg_color="gray50",
-            )
-            self.summary_label.configure(
-                text=f"{conflict_count} conflicto(s) detectado(s). Resuélvelos para continuar.",
-                text_color="#EF4444",
-            )
+            self.btn_apply.disabled = True
+            self.btn_apply.content = "Hay Conflictos"
+            self.summary_text.value = f"{conflict_count} conflicto(s) detectado(s). Resuelvelos para continuar."
+            self.summary_text.color = COLOR_DANGER
         elif modified_count > 0:
-            self.btn_apply.configure(
-                state="normal",
-                text=f"Aplicar Cambios ({modified_count})",
-                fg_color=COLOR_SUCCESS,
-            )
-            self.summary_label.configure(
-                text=f"{modified_count} archivo(s) listos para modificar.",
-                text_color="#10B981",
-            )
+            self.btn_apply.disabled = False
+            self.btn_apply.content = f"Aplicar Cambios ({modified_count})"
+            self.summary_text.value = f"{modified_count} archivo(s) listos para modificar."
+            self.summary_text.color = COLOR_SUCCESS
         else:
-            self.btn_apply.configure(
-                state="disabled",
-                text="Aplicar Cambios",
-                fg_color="gray50",
-            )
-            self.summary_label.configure(
-                text="No hay cambios pendientes.",
-                text_color="gray",
-            )
+            self.btn_apply.disabled = True
+            self.btn_apply.content = "Aplicar Cambios"
+            self.summary_text.value = "No hay cambios pendientes."
+            self.summary_text.color = COLOR_TEXT_MUTED
+
+        safe_update(self)

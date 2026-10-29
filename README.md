@@ -3,8 +3,8 @@
 > Gestor, organizador y renombrador por lotes de archivos con vista previa interactiva, control de colisiones, historial de deshacer y detección de duplicados en Python.
 
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![GUI Framework](https://img.shields.io/badge/GUI-CustomTkinter-blueviolet.svg)](https://customtkinter.tomschimansky.com/)
-[![Tests](https://img.shields.io/badge/tests-21%20passed-success.svg)](tests/)
+[![GUI Framework](https://img.shields.io/badge/GUI-Flet%20(Flutter)-f40048.svg)](https://flet.dev/)
+[![Tests](https://img.shields.io/badge/tests-24%20passed-success.svg)](tests/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -25,7 +25,7 @@
 
 ## Descripcion
 
-**FilesPy** es una herramienta de escritorio construida sobre **Python 3** y **CustomTkinter** disenada para resolver de forma segura y eficiente la administracion masiva de archivos. Permite ordenar colecciones de archivos en directorios clasificados, renombrar grandes volumenes bajo multiples reglas encadenadas y verificar cada operacion mediante una tabla interactiva en tiempo real antes de escribir cualquier cambio en el almacenamiento secundario.
+**FilesPy** es una herramienta de escritorio moderna y minimalista construida sobre **Python 3** y **Flet** (Flutter engine para Python) con un diseno en modo oscuro y acentos en **`#f40048`**. Esta disenada para resolver de forma rapida, segura y elegante la administracion masiva de archivos. Permite ordenar colecciones de archivos en directorios clasificados, renombrar grandes volumenes bajo multiples reglas encadenadas y verificar cada operacion mediante una tabla interactiva en tiempo real antes de escribir cualquier cambio en el disco.
 
 El diseno prioriza la integridad de datos: ninguna operacion modifica archivos fisicos sin confirmacion previa, se detectan activamente posibles colisiones de nombres o rutas, y cada lote ejecutado puede revertirse con un solo clic gracias a un gestor de transacciones reversibles.
 
@@ -77,7 +77,7 @@ El diseno prioriza la integridad de datos: ninguna operacion modifica archivos f
 ```text
 +-----------------------------------------------------------------+
 |                       Interfaz de Usuario                       |
-|                          (CustomTkinter)                        |
+|                       (Flet / Flutter Engine)                   |
 |                                                                 |
 |   +---------------+  +-------------------+  +---------------+   |
 |   |   FolderBar   |  |  SettingsDialog   |  |   ActionBar   |   |
@@ -128,7 +128,7 @@ FilesPy/
 │   ├── renamer.py               # Motor de transformaciones de nombres
 │   ├── scanner.py               # Explorador de directorios con filtros
 │   └── undo.py                  # Pila de transacciones y operaciones reversibles
-├── ui/                          # Capa visual (CustomTkinter)
+├── ui/                          # Capa visual minimalista (Flet)
 │   ├── __init__.py
 │   ├── app.py                   # Ventana principal y pipeline reactivo
 │   ├── theme.py                 # Constantes de diseno y formateadores

@@ -1,8 +1,7 @@
-"""Main Application Window for FilesPy."""
+"""Main Application Layout and Logic for FilesPy (Flet)."""
 from pathlib import Path
-from tkinter import messagebox
 from typing import List, Optional
-import customtkinter as ctk
+import flet as ft
 
 from core.conflicts import validate_conflicts
 from core.config_manager import ConfigManager
@@ -20,25 +19,33 @@ from ui.components.organize_panel import OrganizePanel
 from ui.components.preview_table import PreviewTable
 from ui.components.rename_panel import RenamePanel
 from ui.components.settings_dialog import SettingsDialog
-from ui.icons import get_icon
+from ui.theme import (
+    COLOR_BG_DARK,
+    COLOR_BORDER_DARK,
+    COLOR_PRIMARY,
+    COLOR_SURFACE_DARK,
+    COLOR_TEXT_MUTED,
+    safe_update,
+)
 
 
-class FilesPyApp(ctk.CTk):
-    """Main application window."""
+class FilesPyApp:
+    """Main Flet Application controller."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, page: ft.Page):
+        self.page = page
 
-        # Window Configuration
-        self.title("FilesPy - Organizador y Renombrador de Archivos")
-        self.geometry("1180x720")
-        self.minsize(960, 580)
+        # Window & Theme configuration
+        self.page.title = "FilesPy — Organizador y Renombrador de Archivos"
+        self.page.theme_mode = ft.ThemeMode.DARK
+        self.page.padding = 0
+        self.page.spacing = 0
+        self.page.bgcolor = COLOR_BG_DARK
+        self.page.theme = ft.Theme(
+            color_scheme_seed=COLOR_PRIMARY,
+        )
 
-        # Set appearance to match system
-        ctk.set_appearance_mode("System")
-        ctk.set_default_color_theme("blue")
-
-        # Business Logic & Config State
+        # Core State
         self.config_manager = ConfigManager()
         self.undo_manager = UndoManager()
         self.current_folder: Optional[Path] = None
@@ -57,94 +64,121 @@ class FilesPyApp(ctk.CTk):
     def _build_ui(self):
         # 1. Top Folder Bar
         self.folder_bar = FolderBar(
-            self,
             on_folder_selected=self._on_folder_changed,
             on_open_settings=self._open_settings_dialog,
         )
-        self.folder_bar.pack(fill="x", padx=10, pady=(10, 5))
+        self.page.overlay.append(self.folder_bar.file_picker)
 
-        # 2. Main Content Area (Left: Rules, Center: Table, Right: Inspector)
-        self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.content_frame.pack(fill="both", expand=True, padx=10, pady=5)
-
-        # Left Column: Rules Tabview
-        self.tabs = ctk.CTkTabview(self.content_frame, width=280)
-        self.tabs.pack(side="left", fill="y", padx=(0, 6), pady=0)
-
-        tab_rename = self.tabs.add("Renombrar")
-        tab_organize = self.tabs.add("Organizar")
-        tab_duplicates = self.tabs.add("Duplicados")
-
-        # Configure tab images (non-emoji icons)
-        btn_r = self.tabs._segmented_button._buttons_dict.get("Renombrar")
-        if btn_r:
-            btn_r.configure(image=get_icon("edit", (14, 14)), compound="left")
-        btn_o = self.tabs._segmented_button._buttons_dict.get("Organizar")
-        if btn_o:
-            btn_o.configure(image=get_icon("organize", (14, 14)), compound="left")
-        btn_d = self.tabs._segmented_button._buttons_dict.get("Duplicados")
-        if btn_d:
-            btn_d.configure(image=get_icon("duplicate", (14, 14)), compound="left")
-
-        self.rename_panel = RenamePanel(
-            tab_rename,
-            on_change=self._on_rename_rules_changed,
-            fg_color="transparent",
-        )
-        self.rename_panel.pack(fill="both", expand=True)
-
-        self.organize_panel = OrganizePanel(
-            tab_organize,
-            on_change=self._on_organize_rules_changed,
-            fg_color="transparent",
-        )
-        self.organize_panel.pack(fill="both", expand=True)
+        # 2. Left Column: Rules Navigation (SegmentedButton)
+        self.rename_panel = RenamePanel(on_change=self._on_rename_rules_changed)
+        self.organize_panel = OrganizePanel(on_change=self._on_organize_rules_changed)
         self.organize_panel.update_categories_info(self.config_manager.get_categories_dict())
-
         self.duplicate_panel = DuplicatePanel(
-            tab_duplicates,
             get_current_items=lambda: self.raw_scanned_items,
             on_isolate_duplicates=self._on_isolate_duplicates,
-            fg_color="transparent",
         )
-        self.duplicate_panel.pack(fill="both", expand=True)
 
-        # Center Column: Preview Table
+        self.panel_container = ft.Container(
+            content=self.rename_panel,
+            expand=True,
+        )
+
+        def on_nav_changed(e):
+            sel = e.control.selected
+            val = list(sel)[0] if sel else "rename"
+            if val == "rename":
+                self.panel_container.content = self.rename_panel
+            elif val == "organize":
+                self.panel_container.content = self.organize_panel
+            elif val == "duplicates":
+                self.panel_container.content = self.duplicate_panel
+            safe_update(self.panel_container)
+
+        self.nav_segmented = ft.SegmentedButton(
+            selected=["rename"],
+            allow_empty_selection=False,
+            segments=[
+                ft.Segment(value="rename", label=ft.Text("Renombrar", size=11), icon=ft.Icons.EDIT_OUTLINED),
+                ft.Segment(value="organize", label=ft.Text("Organizar", size=11), icon=ft.Icons.CATEGORY_OUTLINED),
+                ft.Segment(value="duplicates", label=ft.Text("Duplicados", size=11), icon=ft.Icons.COPY_ALL_OUTLINED),
+            ],
+            on_change=on_nav_changed,
+        )
+
+        self.left_sidebar = ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Container(content=self.nav_segmented, padding=ft.Padding.symmetric(horizontal=8, vertical=6)),
+                    ft.Divider(height=1, color=COLOR_BORDER_DARK),
+                    self.panel_container,
+                ],
+                spacing=0,
+                expand=True,
+            ),
+            width=310,
+            bgcolor=COLOR_SURFACE_DARK,
+            border=ft.Border.only(right=ft.BorderSide(1, COLOR_BORDER_DARK)),
+        )
+
+        # 3. Center: Preview Table
         self.preview_table = PreviewTable(
-            self.content_frame,
             on_item_inspected=self._on_item_inspected,
             on_selection_toggled=self._on_selection_toggled,
-            corner_radius=8,
         )
-        self.preview_table.pack(side="left", fill="both", expand=True, padx=4)
-
-        # Right Column: Inspector Panel
-        self.inspector = InspectorPanel(
-            self.content_frame,
-            width=260,
-            corner_radius=8,
+        self.center_container = ft.Container(
+            content=self.preview_table,
+            expand=True,
+            padding=10,
         )
-        self.inspector.pack(side="right", fill="y", padx=(6, 0))
 
-        # 3. Bottom Action Bar
+        # 4. Right Column: Inspector Panel
+        self.inspector = InspectorPanel()
+        self.right_container = ft.Container(
+            content=self.inspector,
+            padding=ft.Padding.only(top=10, bottom=10, right=10),
+        )
+
+        # 5. Bottom Action Bar
         self.action_bar = ActionBar(
-            self,
             on_refresh=self._reload_folder,
             on_apply=self._on_apply_changes,
             on_undo=self._on_undo_changes,
         )
-        self.action_bar.pack(fill="x", padx=10, pady=(5, 10))
+
+        # Workspace Row
+        self.workspace_row = ft.Row(
+            controls=[
+                self.left_sidebar,
+                self.center_container,
+                self.right_container,
+            ],
+            spacing=0,
+            expand=True,
+            vertical_alignment=ft.CrossAxisAlignment.STRETCH,
+        )
+
+        # Main Layout Column
+        self.main_layout = ft.Column(
+            controls=[
+                self.folder_bar,
+                self.workspace_row,
+                self.action_bar,
+            ],
+            spacing=0,
+            expand=True,
+        )
+
+        self.page.add(self.main_layout)
 
     def _open_settings_dialog(self):
-        """Opens the modal settings configuration dialog."""
-        SettingsDialog(
-            parent=self,
+        dialog = SettingsDialog(
+            page=self.page,
             config_manager=self.config_manager,
             on_saved=self._on_settings_saved,
         )
+        dialog.show()
 
     def _on_settings_saved(self):
-        """Callback when settings are saved to refresh categories and file scanning."""
         self.organize_panel.update_categories_info(self.config_manager.get_categories_dict())
         self._reload_folder()
 
@@ -154,7 +188,6 @@ class FilesPyApp(ctk.CTk):
         self._reload_folder()
 
     def _reload_folder(self):
-        """Scans the current folder and re-runs the transformation pipeline."""
         if not self.current_folder or not self.current_folder.is_dir():
             return
 
@@ -166,14 +199,11 @@ class FilesPyApp(ctk.CTk):
         self._run_pipeline()
 
     def _run_pipeline(self):
-        """Applies active rename, organize, and conflict rules to scanned items."""
         if not self.current_folder:
             return
 
-        # Clone fresh items from raw scan to preserve original states
         items: List[FileItem] = []
         for it in self.raw_scanned_items:
-            # Preserve user's manual selection if previously set
             matching_prev = next((p for p in self.processed_items if p.original_path == it.original_path), None)
             is_selected = matching_prev.selected if matching_prev else True
 
@@ -194,7 +224,7 @@ class FilesPyApp(ctk.CTk):
         # Step 1: Rename rules
         items = apply_rename_rules(items, self.rename_config)
 
-        # Step 2: Organization rules (with dynamic settings)
+        # Step 2: Organization rules
         self.organize_config.custom_category_map = self.config_manager.get_categories_dict()
         self.organize_config.no_extension_folder = self.config_manager.no_extension_folder
         self.organize_config.unorganized_folder = self.config_manager.unorganized_folder
@@ -206,7 +236,6 @@ class FilesPyApp(ctk.CTk):
         self.processed_items = items
         self.preview_table.set_items(self.processed_items)
 
-        # Update counts
         modified_count = sum(1 for it in items if it.selected and it.is_modified and not it.has_conflict)
         conflict_count = sum(1 for it in items if it.selected and it.has_conflict)
 
@@ -226,14 +255,12 @@ class FilesPyApp(ctk.CTk):
         self._run_pipeline()
 
     def _on_selection_toggled(self):
-        """Called when a checkbox in the preview table is clicked."""
         self._run_pipeline()
 
     def _on_item_inspected(self, item: FileItem):
         self.inspector.inspect_file(item)
 
     def _on_isolate_duplicates(self, duplicates_to_move: List[FileItem]):
-        """Isolates duplicate files by setting their target folder to the configured duplicates folder."""
         if not self.current_folder:
             return
 
@@ -256,60 +283,79 @@ class FilesPyApp(ctk.CTk):
         )
 
     def _on_apply_changes(self):
-        """Executes the batch rename/move safely with user confirmation."""
         items_to_apply = [
             it for it in self.processed_items
             if it.selected and it.is_modified and not it.has_conflict
         ]
 
         if not items_to_apply:
-            messagebox.showinfo("Informacion", "No hay cambios pendientes para aplicar.")
+            self._show_info_dialog("Informacion", "No hay cambios pendientes para aplicar.")
             return
 
         if self.config_manager.confirm_before_apply:
-            confirm = messagebox.askyesno(
-                "Confirmar Operacion",
-                f"Estas seguro de que deseas modificar {len(items_to_apply)} archivo(s)?\n"
-                "Podras revertir esta operacion en cualquier momento con el boton 'Deshacer'.",
+            def do_apply(e):
+                self.page.pop_dialog()
+                self._execute_apply(items_to_apply)
+
+            confirm_dialog = ft.AlertDialog(
+                title=ft.Text("Confirmar Operacion", weight=ft.FontWeight.W_600),
+                content=ft.Text(
+                    f"Deseas aplicar los cambios a {len(items_to_apply)} archivo(s)?\n"
+                    "Podras revertir la operacion con el boton 'Deshacer'."
+                ),
+                actions=[
+                    ft.TextButton("Cancelar", on_click=lambda _: self.page.pop_dialog()),
+                    ft.FilledButton("Aplicar", on_click=do_apply, bgcolor=COLOR_PRIMARY, color="#FFFFFF"),
+                ],
             )
-            if not confirm:
-                return
+            self.page.show_dialog(confirm_dialog)
+        else:
+            self._execute_apply(items_to_apply)
 
+    def _execute_apply(self, items_to_apply: List[FileItem]):
         count, errors = self.undo_manager.apply_batch(items_to_apply)
-
         if errors:
             err_msg = "\n".join(errors[:5])
-            messagebox.showerror("Error", f"Ocurrieron errores durante el proceso:\n{err_msg}")
+            self._show_info_dialog("Error", f"Ocurrieron errores durante el proceso:\n{err_msg}")
         else:
-            messagebox.showinfo(
+            self._show_info_dialog(
                 "Operacion Completada",
                 f"Se modificaron con exito {count} archivo(s).\n"
                 "Puedes usar el boton 'Deshacer' si necesitas revertir los cambios.",
             )
-
-        # Refresh folder from disk
         self._reload_folder()
 
     def _on_undo_changes(self):
-        """Rolls back the last applied batch."""
         if not self.undo_manager.can_undo():
-            messagebox.showinfo("Informacion", "No hay transacciones previas para deshacer.")
+            self._show_info_dialog("Informacion", "No hay transacciones previas para deshacer.")
             return
 
-        confirm = messagebox.askyesno(
-            "Deshacer Cambios",
-            "Deseas revertir la ultima operacion y restaurar los archivos a su nombre y carpeta original?",
+        def do_undo(e):
+            self.page.pop_dialog()
+            restored, errors = self.undo_manager.undo_last()
+            if errors:
+                err_msg = "\n".join(errors[:5])
+                self._show_info_dialog("Aviso al Deshacer", f"Se restauraron {restored} archivo(s), pero hubo errores:\n{err_msg}")
+            else:
+                self._show_info_dialog("Deshecho Exitoso", f"Se restauraron {restored} archivo(s) a su estado original.")
+            self._reload_folder()
+
+        undo_dialog = ft.AlertDialog(
+            title=ft.Text("Deshacer Cambios", weight=ft.FontWeight.W_600),
+            content=ft.Text("Deseas revertir la ultima operacion y restaurar los archivos a su nombre y carpeta original?"),
+            actions=[
+                ft.TextButton("Cancelar", on_click=lambda _: self.page.pop_dialog()),
+                ft.FilledButton("Deshacer", on_click=do_undo, bgcolor=COLOR_PRIMARY, color="#FFFFFF"),
+            ],
         )
-        if not confirm:
-            return
+        self.page.show_dialog(undo_dialog)
 
-        restored, errors = self.undo_manager.undo_last()
-
-        if errors:
-            err_msg = "\n".join(errors[:5])
-            messagebox.showwarning("Aviso al Deshacer", f"Se restauraron {restored} archivo(s), pero hubo errores:\n{err_msg}")
-        else:
-            messagebox.showinfo("Deshecho Exitoso", f"Se restauraron {restored} archivo(s) a su estado original.")
-
-        # Refresh folder from disk
-        self._reload_folder()
+    def _show_info_dialog(self, title: str, message: str):
+        dialog = ft.AlertDialog(
+            title=ft.Text(title, weight=ft.FontWeight.W_600),
+            content=ft.Text(message),
+            actions=[
+                ft.TextButton("Aceptar", on_click=lambda _: self.page.pop_dialog()),
+            ],
+        )
+        self.page.show_dialog(dialog)

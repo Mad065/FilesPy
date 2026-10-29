@@ -1,119 +1,122 @@
-"""Folder selection bar component."""
+"""Folder selection header bar component for Flet."""
 from pathlib import Path
-from tkinter import filedialog
 from typing import Callable, Optional
-import customtkinter as ctk
-from ui.icons import get_icon
+import flet as ft
+
+from ui.theme import (
+    COLOR_BORDER_DARK,
+    COLOR_CARD_DARK,
+    COLOR_PRIMARY,
+    COLOR_TEXT_MUTED,
+    COLOR_TEXT_PRIMARY,
+    safe_update,
+)
 
 
-class FolderBar(ctk.CTkFrame):
-    """Top bar for selecting folder, setting recursive options, and showing counts."""
+class FolderBar(ft.Container):
+    """Top bar for selecting directory, toggling recursive scan, and opening settings."""
 
     def __init__(
         self,
-        master,
         on_folder_selected: Callable[[Path, bool], None],
-        on_open_settings: Optional[Callable[[], None]] = None,
-        **kwargs,
+        on_open_settings: Callable[[], None],
     ):
-        super().__init__(master, **kwargs)
+        super().__init__()
         self.on_folder_selected = on_folder_selected
         self.on_open_settings = on_open_settings
         self.current_folder: Optional[Path] = None
 
-        self._build_widgets()
-
-    def _build_widgets(self):
-        # Path Label & Entry
-        self.label = ctk.CTkLabel(
-            self,
-            text="Carpeta:",
-            font=ctk.CTkFont(size=13, weight="bold"),
+        # Controls
+        self.path_field = ft.TextField(
+            hint_text="Selecciona o escribe la ruta de una carpeta...",
+            dense=True,
+            expand=True,
+            border_radius=8,
+            border_color=COLOR_BORDER_DARK,
+            focused_border_color=COLOR_PRIMARY,
+            text_size=13,
+            on_submit=self._on_path_submitted,
         )
-        self.label.pack(side="left", padx=(12, 6), pady=8)
 
-        self.path_entry = ctk.CTkEntry(
-            self,
-            placeholder_text="Selecciona una carpeta para ordenar o renombrar...",
-            height=32,
+        self.file_picker = ft.FilePicker(on_result=self._on_dir_picked)
+
+        self.btn_browse = ft.Button(
+            "Explorar...",
+            icon=ft.Icons.FOLDER_OPEN_OUTLINED,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                color=COLOR_TEXT_PRIMARY,
+                bgcolor=COLOR_CARD_DARK,
+            ),
+            on_click=lambda _: self.file_picker.get_directory_path(
+                dialog_title="Seleccionar Carpeta a Procesar"
+            ),
         )
-        self.path_entry.pack(side="left", fill="x", expand=True, padx=6, pady=8)
-        self.path_entry.bind("<Return>", self._on_enter_pressed)
 
-        # Browse Button
-        self.browse_btn = ctk.CTkButton(
-            self,
-            text="Explorar...",
-            image=get_icon("folder", (16, 16)),
-            compound="left",
-            width=120,
-            height=32,
-            command=self._on_browse,
+        self.switch_recursive = ft.Switch(
+            label="Subcarpetas",
+            value=False,
+            active_color=COLOR_PRIMARY,
+            label_text_style=ft.TextStyle(size=12, color=COLOR_TEXT_MUTED),
+            on_change=self._on_option_changed,
         )
-        self.browse_btn.pack(side="left", padx=6, pady=8)
 
-        # Recursive Switch
-        self.recursive_var = ctk.BooleanVar(value=False)
-        self.recursive_switch = ctk.CTkSwitch(
-            self,
-            text="Subcarpetas",
-            variable=self.recursive_var,
-            command=self._on_option_changed,
+        self.count_text = ft.Text(
+            value="0 archivos",
+            size=12,
+            color=COLOR_TEXT_MUTED,
         )
-        self.recursive_switch.pack(side="left", padx=(10, 12), pady=8)
 
-        # Settings Button (Right side)
-        if self.on_open_settings:
-            self.settings_btn = ctk.CTkButton(
-                self,
-                text="Configuracion",
-                image=get_icon("settings", (16, 16)),
-                compound="left",
-                width=125,
-                height=32,
-                fg_color="transparent",
-                border_width=1,
-                text_color=("gray10", "gray90"),
-                command=self.on_open_settings,
-            )
-            self.settings_btn.pack(side="right", padx=(6, 12), pady=8)
-
-        # Counter Label
-        self.count_label = ctk.CTkLabel(
-            self,
-            text="0 archivos",
-            font=ctk.CTkFont(size=12),
-            text_color="gray",
+        self.btn_settings = ft.OutlinedButton(
+            "Configuracion",
+            icon=ft.Icons.SETTINGS_OUTLINED,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, COLOR_BORDER_DARK),
+                color=COLOR_TEXT_PRIMARY,
+            ),
+            on_click=lambda _: self.on_open_settings(),
         )
-        self.count_label.pack(side="right", padx=10, pady=8)
 
-    def _on_browse(self):
-        selected = filedialog.askdirectory(title="Seleccionar Carpeta a Procesar")
-        if selected:
-            folder_path = Path(selected).resolve()
-            self.set_folder(folder_path)
+        self.padding = ft.Padding.symmetric(horizontal=12, vertical=8)
+        self.border = ft.Border.only(bottom=ft.BorderSide(1, COLOR_BORDER_DARK))
+        self.content = ft.Row(
+            controls=[
+                self.btn_browse,
+                self.path_field,
+                self.switch_recursive,
+                self.count_text,
+                self.btn_settings,
+            ],
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=10,
+        )
 
-    def _on_enter_pressed(self, event=None):
-        text = self.path_entry.get().strip()
+    def _on_dir_picked(self, e: ft.FilePickerResultEvent):
+        if e.path:
+            folder = Path(e.path).resolve()
+            self.set_folder(folder)
+
+    def _on_path_submitted(self, e):
+        text = self.path_field.value.strip() if self.path_field.value else ""
         if text:
-            p = Path(text).resolve()
-            if p.is_dir():
-                self.set_folder(p)
+            folder = Path(text).resolve()
+            if folder.is_dir():
+                self.set_folder(folder)
 
-    def _on_option_changed(self):
+    def _on_option_changed(self, e):
         if self.current_folder:
-            self.on_folder_selected(self.current_folder, self.recursive_var.get())
+            self.on_folder_selected(self.current_folder, self.switch_recursive.value)
 
-    def set_folder(self, folder_path: Path):
-        self.current_folder = folder_path
-        self.path_entry.delete(0, "end")
-        self.path_entry.insert(0, str(folder_path))
-        self.on_folder_selected(self.current_folder, self.recursive_var.get())
+    def set_folder(self, folder: Path):
+        self.current_folder = folder
+        self.path_field.value = str(folder)
+        safe_update(self.path_field)
+        self.on_folder_selected(self.current_folder, self.switch_recursive.value)
 
-    def update_count(self, count: int, modified_count: int = 0):
-        if modified_count > 0:
-            self.count_label.configure(
-                text=f"{count} archivos ({modified_count} a modificar)"
-            )
+    def update_count(self, total: int, modified: int = 0):
+        if modified > 0:
+            self.count_text.value = f"{total} archivos ({modified} a modificar)"
         else:
-            self.count_label.configure(text=f"{count} archivos")
+            self.count_text.value = f"{total} archivos"
+        safe_update(self.count_text)

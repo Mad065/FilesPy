@@ -1,182 +1,226 @@
-"""Rename rules configuration panel."""
+"""Rename rules configuration panel for Flet."""
 from typing import Callable
-import customtkinter as ctk
+import flet as ft
+
 from core.models import RenameConfig
+from ui.theme import (
+    COLOR_BORDER_DARK,
+    COLOR_CARD_DARK,
+    COLOR_PRIMARY,
+    COLOR_TEXT_MUTED,
+    COLOR_TEXT_PRIMARY,
+    safe_update,
+)
 
 
-class RenamePanel(ctk.CTkFrame):
+class RenamePanel(ft.Container):
     """Configuration panel for batch file renaming rules."""
 
-    def __init__(self, master, on_change: Callable[[RenameConfig], None], **kwargs):
-        super().__init__(master, **kwargs)
+    def __init__(self, on_change: Callable[[RenameConfig], None]):
+        super().__init__()
         self.on_change = on_change
         self._build_widgets()
 
     def _build_widgets(self):
-        # Section 1: Text Replacement
-        replace_frame = ctk.CTkFrame(self, fg_color="transparent")
-        replace_frame.pack(fill="x", padx=10, pady=(10, 5))
-
-        lbl_find = ctk.CTkLabel(replace_frame, text="Buscar texto:", font=ctk.CTkFont(size=12, weight="bold"))
-        lbl_find.pack(anchor="w")
-
-        self.find_entry = ctk.CTkEntry(replace_frame, placeholder_text="Texto a buscar...")
-        self.find_entry.pack(fill="x", pady=(2, 6))
-        self.find_entry.bind("<KeyRelease>", self._trigger_change)
-
-        lbl_replace = ctk.CTkLabel(replace_frame, text="Reemplazar con:", font=ctk.CTkFont(size=12, weight="bold"))
-        lbl_replace.pack(anchor="w")
-
-        self.replace_entry = ctk.CTkEntry(replace_frame, placeholder_text="Nuevo texto...")
-        self.replace_entry.pack(fill="x", pady=(2, 6))
-        self.replace_entry.bind("<KeyRelease>", self._trigger_change)
-
-        # Options for replacement
-        opts_frame = ctk.CTkFrame(replace_frame, fg_color="transparent")
-        opts_frame.pack(fill="x", pady=2)
-
-        self.match_case_var = ctk.BooleanVar(value=False)
-        self.chk_match_case = ctk.CTkCheckBox(
-            opts_frame, text="Mayús/Minús", variable=self.match_case_var,
-            font=ctk.CTkFont(size=11), command=self._trigger_change
+        # 1. Text Replacement
+        self.find_field = ft.TextField(
+            label="Buscar texto",
+            dense=True,
+            border_radius=8,
+            border_color=COLOR_BORDER_DARK,
+            focused_border_color=COLOR_PRIMARY,
+            on_change=lambda _: self._trigger_change(),
         )
-        self.chk_match_case.pack(side="left", padx=(0, 10))
 
-        self.regex_var = ctk.BooleanVar(value=False)
-        self.chk_regex = ctk.CTkCheckBox(
-            opts_frame, text="Regex", variable=self.regex_var,
-            font=ctk.CTkFont(size=11), command=self._trigger_change
+        self.replace_field = ft.TextField(
+            label="Reemplazar con",
+            dense=True,
+            border_radius=8,
+            border_color=COLOR_BORDER_DARK,
+            focused_border_color=COLOR_PRIMARY,
+            on_change=lambda _: self._trigger_change(),
         )
-        self.chk_regex.pack(side="left")
 
-        # Section 2: Prefix and Suffix
-        affix_frame = ctk.CTkFrame(self, fg_color="transparent")
-        affix_frame.pack(fill="x", padx=10, pady=5)
-
-        lbl_prefix = ctk.CTkLabel(affix_frame, text="Prefijo (al inicio):", font=ctk.CTkFont(size=12, weight="bold"))
-        lbl_prefix.pack(anchor="w")
-        self.prefix_entry = ctk.CTkEntry(affix_frame, placeholder_text="ej. Foto_ o 2026_")
-        self.prefix_entry.pack(fill="x", pady=(2, 6))
-        self.prefix_entry.bind("<KeyRelease>", self._trigger_change)
-
-        lbl_suffix = ctk.CTkLabel(affix_frame, text="Sufijo (al final):", font=ctk.CTkFont(size=12, weight="bold"))
-        lbl_suffix.pack(anchor="w")
-        self.suffix_entry = ctk.CTkEntry(affix_frame, placeholder_text="ej. _FINAL o _v1")
-        self.suffix_entry.pack(fill="x", pady=(2, 6))
-        self.suffix_entry.bind("<KeyRelease>", self._trigger_change)
-
-        # Section 3: Sequential Numbering
-        num_frame = ctk.CTkFrame(self, fg_color="transparent")
-        num_frame.pack(fill="x", padx=10, pady=5)
-
-        self.numbering_var = ctk.BooleanVar(value=False)
-        self.chk_numbering = ctk.CTkCheckBox(
-            num_frame, text="Numeración Secuencial", variable=self.numbering_var,
-            font=ctk.CTkFont(size=12, weight="bold"), command=self._trigger_change
+        self.chk_match_case = ft.Checkbox(
+            label="Mayus/Minus",
+            value=False,
+            active_color=COLOR_PRIMARY,
+            label_style=ft.TextStyle(size=12, color=COLOR_TEXT_MUTED),
+            on_change=lambda _: self._trigger_change(),
         )
-        self.chk_numbering.pack(anchor="w", pady=(0, 4))
 
-        num_sub_frame = ctk.CTkFrame(num_frame, fg_color="transparent")
-        num_sub_frame.pack(fill="x", pady=2)
-
-        lbl_start = ctk.CTkLabel(num_sub_frame, text="Inicio:", font=ctk.CTkFont(size=11))
-        lbl_start.pack(side="left", padx=(0, 4))
-        self.num_start_entry = ctk.CTkEntry(num_sub_frame, width=50)
-        self.num_start_entry.insert(0, "1")
-        self.num_start_entry.pack(side="left", padx=(0, 10))
-        self.num_start_entry.bind("<KeyRelease>", self._trigger_change)
-
-        lbl_digits = ctk.CTkLabel(num_sub_frame, text="Dígitos:", font=ctk.CTkFont(size=11))
-        lbl_digits.pack(side="left", padx=(0, 4))
-        self.digits_menu = ctk.CTkOptionMenu(
-            num_sub_frame, values=["1", "2", "3", "4", "5"], width=65,
-            command=lambda _: self._trigger_change()
+        self.chk_regex = ft.Checkbox(
+            label="Regex",
+            value=False,
+            active_color=COLOR_PRIMARY,
+            label_style=ft.TextStyle(size=12, color=COLOR_TEXT_MUTED),
+            on_change=lambda _: self._trigger_change(),
         )
-        self.digits_menu.set("3")
-        self.digits_menu.pack(side="left")
 
-        # Section 4: Case & Extensions
-        extra_frame = ctk.CTkFrame(self, fg_color="transparent")
-        extra_frame.pack(fill="x", padx=10, pady=5)
-
-        lbl_case = ctk.CTkLabel(extra_frame, text="Formato de Mayúsculas:", font=ctk.CTkFont(size=12, weight="bold"))
-        lbl_case.pack(anchor="w")
-
-        self.case_map = {
-            "Original (Sin cambio)": "original",
-            "minúsculas": "lower",
-            "MAYÚSCULAS": "upper",
-            "Título (Capitalize)": "title",
-            "snake_case": "snake",
-            "kebab-case": "kebab",
-        }
-        self.case_menu = ctk.CTkOptionMenu(
-            extra_frame,
-            values=list(self.case_map.keys()),
-            command=lambda _: self._trigger_change(),
+        # 2. Prefix and Suffix
+        self.prefix_field = ft.TextField(
+            label="Prefijo (al inicio)",
+            dense=True,
+            border_radius=8,
+            border_color=COLOR_BORDER_DARK,
+            focused_border_color=COLOR_PRIMARY,
+            on_change=lambda _: self._trigger_change(),
         )
-        self.case_menu.set("Original (Sin cambio)")
-        self.case_menu.pack(fill="x", pady=(2, 6))
 
-        lbl_ext = ctk.CTkLabel(extra_frame, text="Cambiar Extensión (opcional):", font=ctk.CTkFont(size=12, weight="bold"))
-        lbl_ext.pack(anchor="w")
-        self.ext_entry = ctk.CTkEntry(extra_frame, placeholder_text="ej. jpg o png (dejar vacío para mantener)")
-        self.ext_entry.pack(fill="x", pady=(2, 6))
-        self.ext_entry.bind("<KeyRelease>", self._trigger_change)
-
-        # Reset button
-        btn_reset = ctk.CTkButton(
-            self, text="Restablecer Reglas", fg_color="transparent",
-            border_width=1, text_color=("gray10", "gray90"),
-            command=self.reset_rules, height=28
+        self.suffix_field = ft.TextField(
+            label="Sufijo (al final)",
+            dense=True,
+            border_radius=8,
+            border_color=COLOR_BORDER_DARK,
+            focused_border_color=COLOR_PRIMARY,
+            on_change=lambda _: self._trigger_change(),
         )
-        btn_reset.pack(fill="x", padx=10, pady=(10, 10))
 
-    def _trigger_change(self, event=None):
+        # 3. Numbering
+        self.chk_numbering = ft.Checkbox(
+            label="Numeracion Secuencial",
+            value=False,
+            active_color=COLOR_PRIMARY,
+            label_style=ft.TextStyle(size=12, weight=ft.FontWeight.W_600, color=COLOR_TEXT_PRIMARY),
+            on_change=lambda _: self._trigger_change(),
+        )
+
+        self.start_field = ft.TextField(
+            label="Inicio",
+            value="1",
+            dense=True,
+            width=70,
+            border_radius=8,
+            border_color=COLOR_BORDER_DARK,
+            focused_border_color=COLOR_PRIMARY,
+            on_change=lambda _: self._trigger_change(),
+        )
+
+        self.digits_dropdown = ft.Dropdown(
+            label="Digitos",
+            value="3",
+            dense=True,
+            width=85,
+            border_radius=8,
+            border_color=COLOR_BORDER_DARK,
+            focused_border_color=COLOR_PRIMARY,
+            options=[
+                ft.dropdown.Option("1"),
+                ft.dropdown.Option("2"),
+                ft.dropdown.Option("3"),
+                ft.dropdown.Option("4"),
+                ft.dropdown.Option("5"),
+            ],
+            on_select=lambda _: self._trigger_change(),
+        )
+
+        # 4. Case Mode
+        self.case_dropdown = ft.Dropdown(
+            label="Mayusculas / Minusculas",
+            value="original",
+            dense=True,
+            border_radius=8,
+            border_color=COLOR_BORDER_DARK,
+            focused_border_color=COLOR_PRIMARY,
+            options=[
+                ft.dropdown.Option("original", "Original (Sin cambio)"),
+                ft.dropdown.Option("lower", "minusculas"),
+                ft.dropdown.Option("upper", "MAYUSCULAS"),
+                ft.dropdown.Option("title", "Titulo (Capitalize)"),
+                ft.dropdown.Option("snake", "snake_case"),
+                ft.dropdown.Option("kebab", "kebab-case"),
+            ],
+            on_select=lambda _: self._trigger_change(),
+        )
+
+        # 5. Extension
+        self.ext_field = ft.TextField(
+            label="Cambiar extension (opcional)",
+            hint_text="ej. jpg o png",
+            dense=True,
+            border_radius=8,
+            border_color=COLOR_BORDER_DARK,
+            focused_border_color=COLOR_PRIMARY,
+            on_change=lambda _: self._trigger_change(),
+        )
+
+        # 6. Reset
+        self.btn_reset = ft.OutlinedButton(
+            "Restablecer Reglas",
+            icon=ft.Icons.RESTART_ALT_OUTLINED,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, COLOR_BORDER_DARK),
+                color=COLOR_TEXT_MUTED,
+            ),
+            on_click=lambda _: self.reset_rules(),
+        )
+
+        self.padding = ft.Padding.all(12)
+        self.content = ft.Column(
+            controls=[
+                self.find_field,
+                self.replace_field,
+                ft.Row([self.chk_match_case, self.chk_regex], spacing=10),
+                ft.Divider(height=1, color=COLOR_BORDER_DARK),
+                self.prefix_field,
+                self.suffix_field,
+                ft.Divider(height=1, color=COLOR_BORDER_DARK),
+                self.chk_numbering,
+                ft.Row([self.start_field, self.digits_dropdown], spacing=10),
+                ft.Divider(height=1, color=COLOR_BORDER_DARK),
+                self.case_dropdown,
+                self.ext_field,
+                ft.Container(height=4),
+                self.btn_reset,
+            ],
+            spacing=8,
+            scroll=ft.ScrollMode.AUTO,
+        )
+
+    def _trigger_change(self):
         config = self.get_config()
         self.on_change(config)
 
     def get_config(self) -> RenameConfig:
         start_val = 1
         try:
-            start_val = int(self.num_start_entry.get().strip())
+            start_val = int(self.start_field.value.strip()) if self.start_field.value else 1
         except ValueError:
             start_val = 1
 
         digits_val = 3
         try:
-            digits_val = int(self.digits_menu.get())
+            digits_val = int(self.digits_dropdown.value) if self.digits_dropdown.value else 3
         except ValueError:
             digits_val = 3
 
-        selected_case = self.case_map.get(self.case_menu.get(), "original")
-
         return RenameConfig(
-            find_text=self.find_entry.get(),
-            replace_text=self.replace_entry.get(),
-            match_case=self.match_case_var.get(),
-            use_regex=self.regex_var.get(),
-            prefix=self.prefix_entry.get(),
-            suffix=self.suffix_entry.get(),
-            numbering_enabled=self.numbering_var.get(),
+            find_text=self.find_field.value or "",
+            replace_text=self.replace_field.value or "",
+            match_case=bool(self.chk_match_case.value),
+            use_regex=bool(self.chk_regex.value),
+            prefix=self.prefix_field.value or "",
+            suffix=self.suffix_field.value or "",
+            numbering_enabled=bool(self.chk_numbering.value),
             numbering_start=start_val,
             numbering_digits=digits_val,
-            case_mode=selected_case,
+            case_mode=self.case_dropdown.value or "original",
             preserve_extension=True,
-            custom_extension=self.ext_entry.get().strip(),
+            custom_extension=(self.ext_field.value or "").strip(),
         )
 
     def reset_rules(self):
-        self.find_entry.delete(0, "end")
-        self.replace_entry.delete(0, "end")
-        self.match_case_var.set(False)
-        self.regex_var.set(False)
-        self.prefix_entry.delete(0, "end")
-        self.suffix_entry.delete(0, "end")
-        self.numbering_var.set(False)
-        self.num_start_entry.delete(0, "end")
-        self.num_start_entry.insert(0, "1")
-        self.digits_menu.set("3")
-        self.case_menu.set("Original (Sin cambio)")
-        self.ext_entry.delete(0, "end")
+        self.find_field.value = ""
+        self.replace_field.value = ""
+        self.chk_match_case.value = False
+        self.chk_regex.value = False
+        self.prefix_field.value = ""
+        self.suffix_field.value = ""
+        self.chk_numbering.value = False
+        self.start_field.value = "1"
+        self.digits_dropdown.value = "3"
+        self.case_dropdown.value = "original"
+        self.ext_field.value = ""
+        safe_update(self)
         self._trigger_change()

@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
-"""FilesPy - Organizador y Renombrador Inteligente de Archivos.
+"""FilesPy - Organizador y Renombrador Inteligente de Archivos (Flet).
 
-Aplicación de escritorio en Python y CustomTkinter para organizar y renombrar
-archivos por lotes con vista previa interactiva, control de colisiones y deshacer.
+Aplicacion de escritorio ultra minimalista en Python y Flet para organizar
+y renombrar archivos por lotes con vista previa interactiva y deshacer.
 """
-import sys
+import flet as ft
 from ui.app import FilesPyApp
 
 
-def main():
-    try:
-        app = FilesPyApp()
-        app.mainloop()
-    except KeyboardInterrupt:
-        sys.exit(0)
+def main(page: ft.Page):
+    FilesPyApp(page)
 
 
 if __name__ == "__main__":
-    main()
+    ft.app(target=main)
