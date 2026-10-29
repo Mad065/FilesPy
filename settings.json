@@ -1,0 +1,92 @@
+{
+  "categories": {
+    "Documentos": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".xls",
+      ".pptx",
+      ".ppt",
+      ".txt",
+      ".csv",
+      ".rtf",
+      ".odt",
+      ".epub"
+    ],
+    "Imagenes": [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".webp",
+      ".svg",
+      ".bmp",
+      ".tiff",
+      ".ico",
+      ".raw",
+      ".heic"
+    ],
+    "Audio": [
+      ".mp3",
+      ".wav",
+      ".flac",
+      ".aac",
+      ".ogg",
+      ".m4a",
+      ".wma"
+    ],
+    "Video": [
+      ".mp4",
+      ".mkv",
+      ".mov",
+      ".avi",
+      ".webm",
+      ".wmv",
+      ".flv"
+    ],
+    "Comprimidos": [
+      ".zip",
+      ".rar",
+      ".7z",
+      ".tar",
+      ".gz",
+      ".bz2",
+      ".xz"
+    ],
+    "Codigo": [
+      ".py",
+      ".js",
+      ".jsx",
+      ".ts",
+      ".tsx",
+      ".html",
+      ".css",
+      ".json",
+      ".xml",
+      ".sql",
+      ".sh",
+      ".c",
+      ".cpp",
+      ".java",
+      ".rs",
+      ".go",
+      ".php"
+    ]
+  },
+  "ignored_patterns": [
+    ".DS_Store",
+    "Thumbs.db",
+    "desktop.ini",
+    ".git",
+    ".gitignore",
+    "node_modules",
+    "__pycache__",
+    ".venv"
+  ],
+  "no_extension_folder": "SIN_EXTENSION",
+  "unorganized_folder": "Otros",
+  "duplicates_folder": "_Duplicados",
+  "confirm_before_apply": true,
+  "max_text_preview_size_kb": 512
+}
