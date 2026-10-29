@@ -5,6 +5,7 @@ import customtkinter as ctk
 
 from core.config_manager import ConfigManager, DEFAULT_SETTINGS, normalize_extension
 from ui.theme import COLOR_PRIMARY, COLOR_PRIMARY_HOVER, COLOR_SUCCESS, COLOR_SUCCESS_HOVER
+from ui.icons import get_icon
 
 
 class SettingsDialog(ctk.CTkToplevel):
@@ -90,6 +91,8 @@ class SettingsDialog(ctk.CTkToplevel):
         btn_save = ctk.CTkButton(
             bottom_frame,
             text="Guardar",
+            image=get_icon("check", (14, 14)),
+            compound="left",
             fg_color=COLOR_SUCCESS,
             hover_color=COLOR_SUCCESS_HOVER,
             height=32,
@@ -131,6 +134,8 @@ class SettingsDialog(ctk.CTkToplevel):
         btn_new_cat = ctk.CTkButton(
             left_col,
             text="Nueva Categoria",
+            image=get_icon("plus", (14, 14)),
+            compound="left",
             height=28,
             command=self._on_add_category,
         )
@@ -139,6 +144,8 @@ class SettingsDialog(ctk.CTkToplevel):
         btn_del_cat = ctk.CTkButton(
             left_col,
             text="Eliminar Categoria",
+            image=get_icon("trash", (14, 14)),
+            compound="left",
             fg_color="transparent",
             border_width=1,
             text_color=("gray10", "gray90"),

@@ -4,6 +4,7 @@ import customtkinter as ctk
 from core.models import FileItem
 from core.duplicates import find_duplicates
 from ui.theme import format_bytes
+from ui.icons import get_icon
 
 
 class DuplicatePanel(ctk.CTkFrame):
@@ -48,6 +49,8 @@ class DuplicatePanel(ctk.CTkFrame):
         self.btn_scan = ctk.CTkButton(
             self,
             text="Buscar Duplicados",
+            image=get_icon("search", (15, 15)),
+            compound="left",
             command=self._scan_duplicates,
             height=32,
         )
@@ -67,6 +70,8 @@ class DuplicatePanel(ctk.CTkFrame):
         self.btn_isolate = ctk.CTkButton(
             self,
             text="Mover Copias a _Duplicados",
+            image=get_icon("duplicate", (15, 15)),
+            compound="left",
             command=self._isolate,
             state="disabled",
             fg_color="#F59E0B",

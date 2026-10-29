@@ -8,6 +8,7 @@ from ui.theme import (
     COLOR_PRIMARY,
     COLOR_PRIMARY_HOVER,
 )
+from ui.icons import get_icon
 
 
 class ActionBar(ctk.CTkFrame):
@@ -42,6 +43,8 @@ class ActionBar(ctk.CTkFrame):
         self.btn_apply = ctk.CTkButton(
             self,
             text="Aplicar Cambios",
+            image=get_icon("check", (16, 16)),
+            compound="left",
             fg_color=COLOR_SUCCESS,
             hover_color=COLOR_SUCCESS_HOVER,
             font=ctk.CTkFont(size=13, weight="bold"),
@@ -53,6 +56,8 @@ class ActionBar(ctk.CTkFrame):
         self.btn_undo = ctk.CTkButton(
             self,
             text="Deshacer",
+            image=get_icon("undo", (15, 15)),
+            compound="left",
             fg_color="transparent",
             border_width=1,
             text_color=("gray10", "gray90"),
@@ -65,6 +70,8 @@ class ActionBar(ctk.CTkFrame):
         self.btn_refresh = ctk.CTkButton(
             self,
             text="Actualizar",
+            image=get_icon("refresh", (15, 15)),
+            compound="left",
             fg_color=COLOR_PRIMARY,
             hover_color=COLOR_PRIMARY_HOVER,
             height=34,

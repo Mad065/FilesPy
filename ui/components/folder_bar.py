@@ -3,6 +3,7 @@ from pathlib import Path
 from tkinter import filedialog
 from typing import Callable, Optional
 import customtkinter as ctk
+from ui.icons import get_icon
 
 
 class FolderBar(ctk.CTkFrame):
@@ -43,7 +44,9 @@ class FolderBar(ctk.CTkFrame):
         self.browse_btn = ctk.CTkButton(
             self,
             text="Explorar...",
-            width=110,
+            image=get_icon("folder", (16, 16)),
+            compound="left",
+            width=120,
             height=32,
             command=self._on_browse,
         )
@@ -64,7 +67,9 @@ class FolderBar(ctk.CTkFrame):
             self.settings_btn = ctk.CTkButton(
                 self,
                 text="Configuracion",
-                width=110,
+                image=get_icon("settings", (16, 16)),
+                compound="left",
+                width=125,
                 height=32,
                 fg_color="transparent",
                 border_width=1,

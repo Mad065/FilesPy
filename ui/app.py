@@ -20,6 +20,7 @@ from ui.components.organize_panel import OrganizePanel
 from ui.components.preview_table import PreviewTable
 from ui.components.rename_panel import RenamePanel
 from ui.components.settings_dialog import SettingsDialog
+from ui.icons import get_icon
 
 
 class FilesPyApp(ctk.CTk):
@@ -73,6 +74,17 @@ class FilesPyApp(ctk.CTk):
         tab_rename = self.tabs.add("Renombrar")
         tab_organize = self.tabs.add("Organizar")
         tab_duplicates = self.tabs.add("Duplicados")
+
+        # Configure tab images (non-emoji icons)
+        btn_r = self.tabs._segmented_button._buttons_dict.get("Renombrar")
+        if btn_r:
+            btn_r.configure(image=get_icon("edit", (14, 14)), compound="left")
+        btn_o = self.tabs._segmented_button._buttons_dict.get("Organizar")
+        if btn_o:
+            btn_o.configure(image=get_icon("organize", (14, 14)), compound="left")
+        btn_d = self.tabs._segmented_button._buttons_dict.get("Duplicados")
+        if btn_d:
+            btn_d.configure(image=get_icon("duplicate", (14, 14)), compound="left")
 
         self.rename_panel = RenamePanel(
             tab_rename,
