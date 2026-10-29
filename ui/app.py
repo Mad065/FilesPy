@@ -67,7 +67,10 @@ class FilesPyApp:
             on_folder_selected=self._on_folder_changed,
             on_open_settings=self._open_settings_dialog,
         )
-        self.page.overlay.append(self.folder_bar.file_picker)
+        if hasattr(self.page, "services"):
+            self.page.services.append(self.folder_bar.file_picker)
+        elif hasattr(self.page, "overlay"):
+            self.page.overlay.append(self.folder_bar.file_picker)
 
         # 2. Left Column: Rules Navigation (SegmentedButton)
         self.rename_panel = RenamePanel(on_change=self._on_rename_rules_changed)
@@ -98,9 +101,9 @@ class FilesPyApp:
             selected=["rename"],
             allow_empty_selection=False,
             segments=[
-                ft.Segment(value="rename", label=ft.Text("Renombrar", size=11), icon=ft.Icons.EDIT_OUTLINED),
-                ft.Segment(value="organize", label=ft.Text("Organizar", size=11), icon=ft.Icons.CATEGORY_OUTLINED),
-                ft.Segment(value="duplicates", label=ft.Text("Duplicados", size=11), icon=ft.Icons.COPY_ALL_OUTLINED),
+                ft.Segment(value="rename", icon=ft.Icons.EDIT_OUTLINED, tooltip="Renombrar archivos"),
+                ft.Segment(value="organize", icon=ft.Icons.CATEGORY_OUTLINED, tooltip="Clasificar en carpetas"),
+                ft.Segment(value="duplicates", icon=ft.Icons.COPY_ALL_OUTLINED, tooltip="Buscar duplicados"),
             ],
             on_change=on_nav_changed,
         )
@@ -108,16 +111,15 @@ class FilesPyApp:
         self.left_sidebar = ft.Container(
             content=ft.Column(
                 controls=[
-                    ft.Container(content=self.nav_segmented, padding=ft.Padding.symmetric(horizontal=8, vertical=6)),
+                    ft.Container(content=self.nav_segmented, padding=ft.Padding.symmetric(horizontal=8, vertical=6), alignment=ft.Alignment.CENTER),
                     ft.Divider(height=1, color=COLOR_BORDER_DARK),
                     self.panel_container,
                 ],
                 spacing=0,
                 expand=True,
             ),
-            width=310,
+            width=280,
             bgcolor=COLOR_SURFACE_DARK,
-            border=ft.Border.only(right=ft.BorderSide(1, COLOR_BORDER_DARK)),
         )
 
         # 3. Center: Preview Table
@@ -128,14 +130,14 @@ class FilesPyApp:
         self.center_container = ft.Container(
             content=self.preview_table,
             expand=True,
-            padding=10,
+            padding=ft.Padding.all(8),
         )
 
         # 4. Right Column: Inspector Panel
         self.inspector = InspectorPanel()
         self.right_container = ft.Container(
             content=self.inspector,
-            padding=ft.Padding.only(top=10, bottom=10, right=10),
+            padding=ft.Padding.only(top=8, bottom=8, right=8),
         )
 
         # 5. Bottom Action Bar
@@ -145,11 +147,52 @@ class FilesPyApp:
             on_undo=self._on_undo_changes,
         )
 
+        # Draggable Splitters for Resizing Panels
+        def on_left_drag(e: ft.DragUpdateEvent):
+            if e.primary_delta:
+                current_w = self.left_sidebar.width or 280
+                new_w = max(180, min(550, current_w + e.primary_delta))
+                self.left_sidebar.width = new_w
+                safe_update(self.left_sidebar)
+
+        def on_right_drag(e: ft.DragUpdateEvent):
+            if e.primary_delta:
+                current_w = self.inspector.width or 260
+                new_w = max(160, min(500, current_w - e.primary_delta))
+                self.inspector.width = new_w
+                safe_update(self.inspector)
+
+        splitter_left = ft.GestureDetector(
+            content=ft.Container(
+                width=6,
+                bgcolor=COLOR_BG_DARK,
+                content=ft.VerticalDivider(width=1, thickness=1, color=COLOR_BORDER_DARK),
+                alignment=ft.Alignment.CENTER,
+            ),
+            mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT,
+            drag_interval=10,
+            on_horizontal_drag_update=on_left_drag,
+        )
+
+        splitter_right = ft.GestureDetector(
+            content=ft.Container(
+                width=6,
+                bgcolor=COLOR_BG_DARK,
+                content=ft.VerticalDivider(width=1, thickness=1, color=COLOR_BORDER_DARK),
+                alignment=ft.Alignment.CENTER,
+            ),
+            mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT,
+            drag_interval=10,
+            on_horizontal_drag_update=on_right_drag,
+        )
+
         # Workspace Row
         self.workspace_row = ft.Row(
             controls=[
                 self.left_sidebar,
+                splitter_left,
                 self.center_container,
+                splitter_right,
                 self.right_container,
             ],
             spacing=0,

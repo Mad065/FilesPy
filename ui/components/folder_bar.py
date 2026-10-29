@@ -28,52 +28,52 @@ class FolderBar(ft.Container):
 
         # Controls
         self.path_field = ft.TextField(
-            hint_text="Selecciona o escribe la ruta de una carpeta...",
+            hint_text="Ruta de la carpeta...",
             dense=True,
             expand=True,
             border_radius=8,
             border_color=COLOR_BORDER_DARK,
             focused_border_color=COLOR_PRIMARY,
-            text_size=13,
+            text_size=12,
             on_submit=self._on_path_submitted,
         )
 
         self.file_picker = ft.FilePicker(on_result=self._on_dir_picked)
 
-        self.btn_browse = ft.Button(
-            "Explorar...",
+        self.btn_browse = ft.IconButton(
             icon=ft.Icons.FOLDER_OPEN_OUTLINED,
+            tooltip="Explorar carpeta...",
+            icon_color=COLOR_TEXT_PRIMARY,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=8),
-                color=COLOR_TEXT_PRIMARY,
                 bgcolor=COLOR_CARD_DARK,
+                side=ft.BorderSide(1, COLOR_BORDER_DARK),
             ),
-            on_click=lambda _: self.file_picker.get_directory_path(
-                dialog_title="Seleccionar Carpeta a Procesar"
-            ),
+            on_click=self._on_browse_click,
         )
 
         self.switch_recursive = ft.Switch(
             label="Subcarpetas",
             value=False,
             active_color=COLOR_PRIMARY,
-            label_text_style=ft.TextStyle(size=12, color=COLOR_TEXT_MUTED),
+            label_text_style=ft.TextStyle(size=11, color=COLOR_TEXT_MUTED),
             on_change=self._on_option_changed,
         )
 
         self.count_text = ft.Text(
             value="0 archivos",
-            size=12,
+            size=11,
             color=COLOR_TEXT_MUTED,
         )
 
-        self.btn_settings = ft.OutlinedButton(
-            "Configuracion",
+        self.btn_settings = ft.IconButton(
             icon=ft.Icons.SETTINGS_OUTLINED,
+            tooltip="Configuracion",
+            icon_color=COLOR_TEXT_PRIMARY,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=8),
+                bgcolor=COLOR_CARD_DARK,
                 side=ft.BorderSide(1, COLOR_BORDER_DARK),
-                color=COLOR_TEXT_PRIMARY,
             ),
             on_click=lambda _: self.on_open_settings(),
         )
@@ -92,8 +92,16 @@ class FolderBar(ft.Container):
             spacing=10,
         )
 
+    async def _on_browse_click(self, e):
+        path = await self.file_picker.get_directory_path(
+            dialog_title="Seleccionar Carpeta a Procesar"
+        )
+        if path:
+            folder = Path(path).resolve()
+            self.set_folder(folder)
+
     def _on_dir_picked(self, e: ft.FilePickerResultEvent):
-        if e.path:
+        if hasattr(e, "path") and e.path:
             folder = Path(e.path).resolve()
             self.set_folder(folder)
 

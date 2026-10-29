@@ -24,7 +24,7 @@ class OrganizePanel(ft.Container):
     def _build_widgets(self):
         lbl_title = ft.Text(
             value="Clasificacion en Carpetas",
-            size=13,
+            size=11,
             weight=ft.FontWeight.W_600,
             color=COLOR_TEXT_PRIMARY,
         )
@@ -33,6 +33,8 @@ class OrganizePanel(ft.Container):
             label="Modo de Organizacion",
             value="none",
             dense=True,
+            text_size=11,
+            label_style=ft.TextStyle(size=10, color=COLOR_TEXT_MUTED),
             border_radius=8,
             border_color=COLOR_BORDER_DARK,
             focused_border_color=COLOR_PRIMARY,
@@ -47,7 +49,7 @@ class OrganizePanel(ft.Container):
 
         self.desc_text = ft.Text(
             value="Los archivos permaneceran en su ubicacion original.",
-            size=11,
+            size=10,
             color=COLOR_TEXT_MUTED,
         )
 
@@ -55,13 +57,13 @@ class OrganizePanel(ft.Container):
             content=self.desc_text,
             bgcolor=COLOR_CARD_DARK,
             border_radius=8,
-            padding=10,
+            padding=8,
             border=ft.Border.all(1, COLOR_BORDER_DARK),
         )
 
         self.categories_text = ft.Text(
             value="",
-            size=11,
+            size=9.5,
             color=COLOR_TEXT_MUTED,
         )
 
@@ -69,7 +71,7 @@ class OrganizePanel(ft.Container):
             content=self.categories_text,
             bgcolor=COLOR_CARD_DARK,
             border_radius=8,
-            padding=10,
+            padding=8,
             border=ft.Border.all(1, COLOR_BORDER_DARK),
         )
 

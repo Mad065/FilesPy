@@ -4,7 +4,16 @@
 Aplicacion de escritorio ultra minimalista en Python y Flet para organizar
 y renombrar archivos por lotes con vista previa interactiva y deshacer.
 """
+import os
 import flet as ft
+
+# Ensure SSL certificates are resolved correctly on macOS Python
+try:
+    import certifi
+    os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+except ImportError:
+    pass
+
 from ui.app import FilesPyApp
 
 

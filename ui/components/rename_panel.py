@@ -26,6 +26,8 @@ class RenamePanel(ft.Container):
         self.find_field = ft.TextField(
             label="Buscar texto",
             dense=True,
+            text_size=11,
+            label_style=ft.TextStyle(size=10, color=COLOR_TEXT_MUTED),
             border_radius=8,
             border_color=COLOR_BORDER_DARK,
             focused_border_color=COLOR_PRIMARY,
@@ -35,6 +37,8 @@ class RenamePanel(ft.Container):
         self.replace_field = ft.TextField(
             label="Reemplazar con",
             dense=True,
+            text_size=11,
+            label_style=ft.TextStyle(size=10, color=COLOR_TEXT_MUTED),
             border_radius=8,
             border_color=COLOR_BORDER_DARK,
             focused_border_color=COLOR_PRIMARY,
@@ -45,7 +49,7 @@ class RenamePanel(ft.Container):
             label="Mayus/Minus",
             value=False,
             active_color=COLOR_PRIMARY,
-            label_style=ft.TextStyle(size=12, color=COLOR_TEXT_MUTED),
+            label_style=ft.TextStyle(size=10, color=COLOR_TEXT_MUTED),
             on_change=lambda _: self._trigger_change(),
         )
 
@@ -53,7 +57,7 @@ class RenamePanel(ft.Container):
             label="Regex",
             value=False,
             active_color=COLOR_PRIMARY,
-            label_style=ft.TextStyle(size=12, color=COLOR_TEXT_MUTED),
+            label_style=ft.TextStyle(size=10, color=COLOR_TEXT_MUTED),
             on_change=lambda _: self._trigger_change(),
         )
 
@@ -61,6 +65,8 @@ class RenamePanel(ft.Container):
         self.prefix_field = ft.TextField(
             label="Prefijo (al inicio)",
             dense=True,
+            text_size=11,
+            label_style=ft.TextStyle(size=10, color=COLOR_TEXT_MUTED),
             border_radius=8,
             border_color=COLOR_BORDER_DARK,
             focused_border_color=COLOR_PRIMARY,
@@ -70,6 +76,8 @@ class RenamePanel(ft.Container):
         self.suffix_field = ft.TextField(
             label="Sufijo (al final)",
             dense=True,
+            text_size=11,
+            label_style=ft.TextStyle(size=10, color=COLOR_TEXT_MUTED),
             border_radius=8,
             border_color=COLOR_BORDER_DARK,
             focused_border_color=COLOR_PRIMARY,
@@ -81,7 +89,7 @@ class RenamePanel(ft.Container):
             label="Numeracion Secuencial",
             value=False,
             active_color=COLOR_PRIMARY,
-            label_style=ft.TextStyle(size=12, weight=ft.FontWeight.W_600, color=COLOR_TEXT_PRIMARY),
+            label_style=ft.TextStyle(size=10, weight=ft.FontWeight.W_600, color=COLOR_TEXT_PRIMARY),
             on_change=lambda _: self._trigger_change(),
         )
 
@@ -89,6 +97,8 @@ class RenamePanel(ft.Container):
             label="Inicio",
             value="1",
             dense=True,
+            text_size=11,
+            label_style=ft.TextStyle(size=10, color=COLOR_TEXT_MUTED),
             width=70,
             border_radius=8,
             border_color=COLOR_BORDER_DARK,
@@ -100,6 +110,8 @@ class RenamePanel(ft.Container):
             label="Digitos",
             value="3",
             dense=True,
+            text_size=11,
+            label_style=ft.TextStyle(size=10, color=COLOR_TEXT_MUTED),
             width=85,
             border_radius=8,
             border_color=COLOR_BORDER_DARK,
@@ -119,6 +131,8 @@ class RenamePanel(ft.Container):
             label="Mayusculas / Minusculas",
             value="original",
             dense=True,
+            text_size=11,
+            label_style=ft.TextStyle(size=10, color=COLOR_TEXT_MUTED),
             border_radius=8,
             border_color=COLOR_BORDER_DARK,
             focused_border_color=COLOR_PRIMARY,
@@ -138,6 +152,8 @@ class RenamePanel(ft.Container):
             label="Cambiar extension (opcional)",
             hint_text="ej. jpg o png",
             dense=True,
+            text_size=11,
+            label_style=ft.TextStyle(size=10, color=COLOR_TEXT_MUTED),
             border_radius=8,
             border_color=COLOR_BORDER_DARK,
             focused_border_color=COLOR_PRIMARY,
@@ -152,6 +168,7 @@ class RenamePanel(ft.Container):
                 shape=ft.RoundedRectangleBorder(radius=8),
                 side=ft.BorderSide(1, COLOR_BORDER_DARK),
                 color=COLOR_TEXT_MUTED,
+                text_style=ft.TextStyle(size=10),
             ),
             on_click=lambda _: self.reset_rules(),
         )

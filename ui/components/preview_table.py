@@ -44,12 +44,12 @@ class PreviewTable(ft.Container):
             content=ft.Row(
                 controls=[
                     self.chk_all,
-                    ft.Container(content=ft.Text("Nombre Original", weight=ft.FontWeight.W_600, size=12, color=COLOR_TEXT_MUTED), width=180),
+                    ft.Container(content=ft.Text("Nombre Original", weight=ft.FontWeight.W_600, size=11, color=COLOR_TEXT_MUTED), width=220),
                     ft.Container(width=20),
-                    ft.Container(content=ft.Text("Nuevo Nombre", weight=ft.FontWeight.W_600, size=12, color=COLOR_TEXT_MUTED), width=180),
-                    ft.Container(content=ft.Text("Carpeta Destino", weight=ft.FontWeight.W_600, size=12, color=COLOR_TEXT_MUTED), width=130),
-                    ft.Container(content=ft.Text("Tamano", weight=ft.FontWeight.W_600, size=12, color=COLOR_TEXT_MUTED, text_align=ft.TextAlign.RIGHT), width=70),
-                    ft.Container(content=ft.Text("Estado", weight=ft.FontWeight.W_600, size=12, color=COLOR_TEXT_MUTED, text_align=ft.TextAlign.CENTER), width=100),
+                    ft.Container(content=ft.Text("Nuevo Nombre", weight=ft.FontWeight.W_600, size=11, color=COLOR_TEXT_MUTED), width=220),
+                    ft.Container(content=ft.Text("Carpeta Destino", weight=ft.FontWeight.W_600, size=11, color=COLOR_TEXT_MUTED), width=150),
+                    ft.Container(content=ft.Text("Tamano", weight=ft.FontWeight.W_600, size=11, color=COLOR_TEXT_MUTED, text_align=ft.TextAlign.RIGHT), width=75),
+                    ft.Container(content=ft.Text("Estado", weight=ft.FontWeight.W_600, size=11, color=COLOR_TEXT_MUTED, text_align=ft.TextAlign.CENTER), width=90),
                 ],
                 spacing=6,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -58,6 +58,7 @@ class PreviewTable(ft.Container):
             padding=ft.Padding.symmetric(horizontal=10, vertical=6),
             border_radius=8,
             border=ft.Border.all(1, COLOR_BORDER_DARK),
+            width=880,
         )
 
     def _build_table_view(self):
@@ -67,7 +68,7 @@ class PreviewTable(ft.Container):
                     ft.Icon(ft.Icons.FOLDER_OPEN_OUTLINED, size=40, color=COLOR_TEXT_MUTED),
                     ft.Text(
                         value="Ningun archivo cargado.\nSelecciona una carpeta arriba para comenzar.",
-                        size=13,
+                        size=12,
                         color=COLOR_TEXT_MUTED,
                         text_align=ft.TextAlign.CENTER,
                     ),
@@ -86,13 +87,20 @@ class PreviewTable(ft.Container):
             padding=ft.Padding.symmetric(vertical=4),
         )
 
-        self.expand = True
-        self.content = ft.Column(
+        self.table_column = ft.Column(
             controls=[
                 self.header_row,
                 ft.Container(content=self.empty_view, expand=True),
             ],
             spacing=4,
+            expand=True,
+            width=880,
+        )
+
+        self.expand = True
+        self.content = ft.Row(
+            controls=[self.table_column],
+            scroll=ft.ScrollMode.AUTO,
             expand=True,
         )
 
@@ -101,7 +109,7 @@ class PreviewTable(ft.Container):
         self.list_view.controls.clear()
 
         if not items:
-            self.content.controls[1] = ft.Container(content=self.empty_view, expand=True)
+            self.table_column.controls[1] = ft.Container(content=self.empty_view, expand=True)
             safe_update(self)
             return
 
@@ -109,7 +117,7 @@ class PreviewTable(ft.Container):
             row_ctrl = self._create_row(idx, item)
             self.list_view.controls.append(row_ctrl)
 
-        self.content.controls[1] = ft.Container(content=self.list_view, expand=True)
+        self.table_column.controls[1] = ft.Container(content=self.list_view, expand=True)
         safe_update(self)
 
     def _create_row(self, idx: int, item: FileItem) -> ft.Container:
@@ -133,10 +141,10 @@ class PreviewTable(ft.Container):
         badge_text, badge_bg, badge_fg = self._get_status_badge(item)
 
         status_chip = ft.Container(
-            content=ft.Text(badge_text, size=10, weight=ft.FontWeight.W_600, color=badge_fg),
+            content=ft.Text(badge_text, size=9.5, weight=ft.FontWeight.W_600, color=badge_fg),
             bgcolor=badge_bg,
             border_radius=6,
-            padding=ft.Padding.symmetric(horizontal=8, vertical=3),
+            padding=ft.Padding.symmetric(horizontal=6, vertical=3),
             alignment=ft.Alignment.CENTER,
             width=90,
         )
@@ -145,25 +153,25 @@ class PreviewTable(ft.Container):
             controls=[
                 chk,
                 ft.Container(
-                    content=ft.Text(item.original_name, size=12, color=COLOR_TEXT_PRIMARY, overflow=ft.TextOverflow.ELLIPSIS),
-                    width=180,
+                    content=ft.Text(item.original_name, size=11, color=COLOR_TEXT_PRIMARY, overflow=ft.TextOverflow.ELLIPSIS),
+                    width=220,
                 ),
                 ft.Container(
-                    content=ft.Text("->", size=11, color=COLOR_PRIMARY if item.is_modified else COLOR_TEXT_MUTED),
+                    content=ft.Text("->", size=10, color=COLOR_PRIMARY if item.is_modified else COLOR_TEXT_MUTED),
                     width=20,
                     alignment=ft.Alignment.CENTER,
                 ),
                 ft.Container(
-                    content=ft.Text(item.new_name, size=12, color=new_name_color, weight=new_name_weight, overflow=ft.TextOverflow.ELLIPSIS),
-                    width=180,
+                    content=ft.Text(item.new_name, size=11, color=new_name_color, weight=new_name_weight, overflow=ft.TextOverflow.ELLIPSIS),
+                    width=220,
                 ),
                 ft.Container(
                     content=ft.Text(item.target_folder.name or "/", size=11, color=COLOR_TEXT_MUTED, overflow=ft.TextOverflow.ELLIPSIS),
-                    width=130,
+                    width=150,
                 ),
                 ft.Container(
-                    content=ft.Text(format_bytes(item.size_bytes), size=11, color=COLOR_TEXT_MUTED, text_align=ft.TextAlign.RIGHT),
-                    width=70,
+                    content=ft.Text(format_bytes(item.size_bytes), size=10.5, color=COLOR_TEXT_MUTED, text_align=ft.TextAlign.RIGHT),
+                    width=75,
                 ),
                 status_chip,
             ],
@@ -176,6 +184,7 @@ class PreviewTable(ft.Container):
             bgcolor=COLOR_SURFACE_DARK if idx % 2 == 0 else COLOR_CARD_DARK,
             border_radius=6,
             padding=ft.Padding.symmetric(horizontal=10, vertical=4),
+            width=880,
             on_click=lambda _, it=item: self.on_item_inspected(it),
             ink=True,
         )

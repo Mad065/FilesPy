@@ -34,7 +34,7 @@ class DuplicatePanel(ft.Container):
     def _build_widgets(self):
         lbl_title = ft.Text(
             value="Deteccion de Duplicados",
-            size=13,
+            size=11,
             weight=ft.FontWeight.W_600,
             color=COLOR_TEXT_PRIMARY,
         )
@@ -45,7 +45,7 @@ class DuplicatePanel(ft.Container):
                 "(hash criptografico SHA-256), independientemente "
                 "de si tienen nombres distintos."
             ),
-            size=11,
+            size=10,
             color=COLOR_TEXT_MUTED,
         )
 
@@ -56,13 +56,14 @@ class DuplicatePanel(ft.Container):
                 shape=ft.RoundedRectangleBorder(radius=8),
                 color=COLOR_TEXT_PRIMARY,
                 bgcolor=COLOR_CARD_DARK,
+                text_style=ft.TextStyle(size=10),
             ),
             on_click=self._scan_duplicates,
         )
 
         self.result_text = ft.Text(
             value="Sin escanear aun.",
-            size=11,
+            size=9.5,
             color=COLOR_TEXT_MUTED,
             text_align=ft.TextAlign.CENTER,
         )
@@ -71,7 +72,7 @@ class DuplicatePanel(ft.Container):
             content=self.result_text,
             bgcolor=COLOR_CARD_DARK,
             border_radius=8,
-            padding=10,
+            padding=8,
             border=ft.Border.all(1, COLOR_BORDER_DARK),
             alignment=ft.Alignment.CENTER,
         )
@@ -84,6 +85,7 @@ class DuplicatePanel(ft.Container):
                 shape=ft.RoundedRectangleBorder(radius=8),
                 color="#FFFFFF",
                 bgcolor=COLOR_WARNING,
+                text_style=ft.TextStyle(size=10),
             ),
             on_click=lambda _: self._isolate(),
         )
