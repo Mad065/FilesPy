@@ -5,7 +5,7 @@ import flet as ft
 
 from core.conflicts import validate_conflicts
 from core.config_manager import ConfigManager
-from core.models import FileItem, OrganizeConfig, RenameConfig
+from core.models import FileItem, OrganizeConfig, RenameConfig, StepAction
 from core.organizer import apply_organization_rules
 from core.renamer import apply_rename_rules
 from core.scanner import scan_directory
@@ -19,6 +19,7 @@ from ui.components.organize_panel import OrganizePanel
 from ui.components.preview_table import PreviewTable
 from ui.components.rename_panel import RenamePanel
 from ui.components.settings_dialog import SettingsDialog
+from ui.components.step_review_dialog import StepReviewDialog
 from ui.theme import (
     COLOR_BG_DARK,
     COLOR_BORDER_DARK,
@@ -145,6 +146,7 @@ class FilesPyApp:
             on_refresh=self._reload_folder,
             on_apply=self._on_apply_changes,
             on_undo=self._on_undo_changes,
+            on_step_review=self._open_step_review,
         )
 
         # Draggable Splitters for Resizing Panels
@@ -287,6 +289,7 @@ class FilesPyApp:
             modified_count=modified_count,
             conflict_count=conflict_count,
             can_undo=self.undo_manager.can_undo(),
+            total_files=len(items),
         )
 
     def _on_rename_rules_changed(self, config: RenameConfig):
@@ -323,6 +326,7 @@ class FilesPyApp:
             modified_count=modified_count,
             conflict_count=conflict_count,
             can_undo=self.undo_manager.can_undo(),
+            total_files=len(self.processed_items),
         )
 
     def _on_apply_changes(self):
@@ -365,6 +369,44 @@ class FilesPyApp:
                 "Operacion Completada",
                 f"Se modificaron con exito {count} archivo(s).\n"
                 "Puedes usar el boton 'Deshacer' si necesitas revertir los cambios.",
+            )
+        self._reload_folder()
+
+    def _open_step_review(self):
+        if not self.processed_items:
+            self._show_info_dialog("Información", "No hay archivos cargados para revisar.")
+            return
+
+        trash_dir = (self.current_folder / self.config_manager.trash_folder) if self.current_folder else Path("_Papelera")
+
+        dialog = StepReviewDialog(
+            page=self.page,
+            items=self.processed_items,
+            trash_folder=trash_dir,
+            on_finished=self._on_step_review_finished,
+        )
+        dialog.show()
+
+    def _on_step_review_finished(self, reviewed_items: List[Tuple[FileItem, StepAction]]):
+        if not self.current_folder:
+            return
+
+        trash_dir = self.current_folder / self.config_manager.trash_folder
+        modified, discarded, errors = self.undo_manager.apply_reviewed_batch(
+            reviewed_items=reviewed_items,
+            trash_folder=trash_dir,
+        )
+
+        if errors:
+            err_msg = "\n".join(errors[:5])
+            self._show_info_dialog("Aviso en Revisión", f"Ocurrieron errores durante el proceso:\n{err_msg}")
+        else:
+            self._show_info_dialog(
+                "Revisión Completada",
+                f"Operación finalizada con éxito:\n\n"
+                f"• {modified} archivo(s) modificados (renombrados/organizados).\n"
+                f"• {discarded} archivo(s) movidos a '{trash_dir.name}'.\n\n"
+                "Puedes usar el botón 'Deshacer' si necesitas revertir estos cambios.",
             )
         self._reload_folder()
 

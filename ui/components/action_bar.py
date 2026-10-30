@@ -22,11 +22,13 @@ class ActionBar(ft.Container):
         on_refresh: Callable[[], None],
         on_apply: Callable[[], None],
         on_undo: Callable[[], None],
+        on_step_review: Callable[[], None],
     ):
         super().__init__()
         self.on_refresh = on_refresh
         self.on_apply = on_apply
         self.on_undo = on_undo
+        self.on_step_review = on_step_review
 
         self._build_widgets()
 
@@ -61,6 +63,19 @@ class ActionBar(ft.Container):
             on_click=lambda _: self.on_undo(),
         )
 
+        self.btn_step_review = ft.OutlinedButton(
+            "Revisión Paso a Paso",
+            icon=ft.Icons.CHECKLIST_RTL,
+            disabled=True,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, COLOR_BORDER_DARK),
+                color=COLOR_TEXT_PRIMARY,
+            ),
+            tooltip="Inspeccionar archivos uno por uno con vista previa y elegir conservar, modificar o eliminar",
+            on_click=lambda _: self.on_step_review(),
+        )
+
         self.btn_apply = ft.FilledButton(
             "Aplicar Cambios",
             icon=ft.Icons.CHECK,
@@ -80,14 +95,16 @@ class ActionBar(ft.Container):
                 self.summary_text,
                 self.btn_refresh,
                 self.btn_undo,
+                self.btn_step_review,
                 self.btn_apply,
             ],
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=10,
         )
 
-    def update_state(self, modified_count: int, conflict_count: int, can_undo: bool):
+    def update_state(self, modified_count: int, conflict_count: int, can_undo: bool, total_files: int = 0):
         self.btn_undo.disabled = not can_undo
+        self.btn_step_review.disabled = (total_files == 0)
 
         if conflict_count > 0:
             self.btn_apply.disabled = True

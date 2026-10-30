@@ -70,6 +70,12 @@ El diseno prioriza la integridad de datos: ninguna operacion modifica archivos f
 - Lista editable de archivos y patrones a omitir durante el escaneo (`.DS_Store`, `node_modules`, `Thumbs.db`, etc.).
 - Persistencia automatica en [`settings.json`](settings.json) con funcion de restauracion a valores predeterminados.
 
+### 8. Revision Paso a Paso (Modo Interactivo)
+- Recorrido archivo por archivo con vista previa visual (miniaturas y codigo) y metadatos tecnicos detallados.
+- Decision individual para cada archivo: **Aplicar Accion** (renombrar o mover), **Conservar Original** (omitir cambio) o **Eliminar Archivo** (mover de forma segura y reversible a `_Papelera`).
+- Control de navegacion *Anterior / Siguiente* y atajos para aplicar o conservar los archivos restantes en lote.
+- Registro total en el motor de transacciones: todo descarte o cambio puede revertirse con el boton **Deshacer**.
+
 ---
 
 ## Arquitectura del Sistema

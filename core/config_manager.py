@@ -39,6 +39,7 @@ DEFAULT_IGNORED: List[str] = [
     "node_modules",
     "__pycache__",
     ".venv",
+    "_Papelera",
 ]
 
 DEFAULT_SETTINGS: dict = {
@@ -47,6 +48,7 @@ DEFAULT_SETTINGS: dict = {
     "no_extension_folder": "SIN_EXTENSION",
     "unorganized_folder": "Otros",
     "duplicates_folder": "_Duplicados",
+    "trash_folder": "_Papelera",
     "confirm_before_apply": True,
     "max_text_preview_size_kb": 512,
 }
@@ -127,6 +129,10 @@ class ConfigManager:
     @property
     def duplicates_folder(self) -> str:
         return self.settings.get("duplicates_folder", "_Duplicados")
+
+    @property
+    def trash_folder(self) -> str:
+        return self.settings.get("trash_folder", "_Papelera")
 
     @property
     def confirm_before_apply(self) -> bool:

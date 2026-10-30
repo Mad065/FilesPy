@@ -38,6 +38,24 @@ class TestOrganizer(unittest.TestCase):
         self.assertEqual(items[0].target_folder, self.base / "Documentos")
         self.assertEqual(items[1].target_folder, self.base / "Imágenes")
 
+    def test_organize_without_extension(self):
+        item_no_ext = FileItem(
+            original_path=self.base / "LEAME",
+            original_name="LEAME",
+            extension="",
+            size_bytes=50,
+            modified_time=1761800000.0,
+            new_name="LEAME",
+            target_folder=self.base,
+        )
+        cfg_cat = OrganizeConfig(mode="by_category", no_extension_folder="SIN_EXTENSION")
+        res_cat = apply_organization_rules([item_no_ext], self.base, cfg_cat)
+        self.assertEqual(res_cat[0].target_folder, self.base / "SIN_EXTENSION")
+
+        cfg_ext = OrganizeConfig(mode="by_extension", no_extension_folder="SIN_EXTENSION")
+        res_ext = apply_organization_rules([item_no_ext], self.base, cfg_ext)
+        self.assertEqual(res_ext[0].target_folder, self.base / "SIN_EXTENSION")
+
     def test_category_lookup(self):
         self.assertEqual(get_category_for_extension(".py"), "Código")
         self.assertEqual(get_category_for_extension(".mp3"), "Audio")

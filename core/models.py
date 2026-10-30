@@ -13,6 +13,12 @@ class FileStatus(str, Enum):
     ERROR = "ERROR"
 
 
+class StepAction(str, Enum):
+    APPLY = "APPLY"       # Aplicar reglas de renombrado / organizacion
+    KEEP = "KEEP"         # Conservar archivo original sin modificaciones
+    DISCARD = "DISCARD"   # Mover archivo a carpeta de descarte/papelera
+
+
 @dataclass
 class FileItem:
     """Represents a file being inspected or prepared for renaming/organizing."""

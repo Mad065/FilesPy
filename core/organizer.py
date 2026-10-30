@@ -67,11 +67,14 @@ def apply_organization_rules(
             item.target_folder = base_dir / folder_name
 
         elif config.mode == "by_category":
-            category = get_category_for_extension(
-                item.extension,
-                config.custom_category_map or None,
-                default_category=unorg_name,
-            )
+            if not item.extension.strip():
+                category = no_ext_name
+            else:
+                category = get_category_for_extension(
+                    item.extension,
+                    config.custom_category_map or None,
+                    default_category=unorg_name,
+                )
             item.target_folder = base_dir / category
 
         elif config.mode == "by_date":
