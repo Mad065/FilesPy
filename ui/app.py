@@ -15,6 +15,7 @@ from ui.components.action_bar import ActionBar
 from ui.components.duplicate_panel import DuplicatePanel
 from ui.components.folder_bar import FolderBar
 from ui.components.inspector_panel import InspectorPanel
+from ui.components.manual_organize_dialog import ManualOrganizeDialog
 from ui.components.organize_panel import OrganizePanel
 from ui.components.preview_table import PreviewTable
 from ui.components.rename_panel import RenamePanel
@@ -58,6 +59,7 @@ class FilesPyApp:
             custom_category_map=self.config_manager.get_categories_dict(),
             no_extension_folder=self.config_manager.no_extension_folder,
             unorganized_folder=self.config_manager.unorganized_folder,
+            manual_folders=self.config_manager.get_manual_folders(),
         )
 
         self._build_ui()
@@ -75,7 +77,12 @@ class FilesPyApp:
 
         # 2. Left Column: Rules Navigation (SegmentedButton)
         self.rename_panel = RenamePanel(on_change=self._on_rename_rules_changed)
-        self.organize_panel = OrganizePanel(on_change=self._on_organize_rules_changed)
+        self.organize_panel = OrganizePanel(
+            on_change=self._on_organize_rules_changed,
+            on_start_manual_organize=self._open_manual_organize,
+            initial_manual_folders=self.config_manager.get_manual_folders(),
+            on_manual_folders_changed=self._on_manual_folders_changed,
+        )
         self.organize_panel.update_categories_info(self.config_manager.get_categories_dict())
         self.duplicate_panel = DuplicatePanel(
             get_current_items=lambda: self.raw_scanned_items,
@@ -147,6 +154,7 @@ class FilesPyApp:
             on_apply=self._on_apply_changes,
             on_undo=self._on_undo_changes,
             on_step_review=self._open_step_review,
+            on_manual_organize=self._open_manual_organize,
         )
 
         # Draggable Splitters for Resizing Panels
@@ -369,6 +377,52 @@ class FilesPyApp:
                 "Operacion Completada",
                 f"Se modificaron con exito {count} archivo(s).\n"
                 "Puedes usar el boton 'Deshacer' si necesitas revertir los cambios.",
+            )
+        self._reload_folder()
+
+    def _on_manual_folders_changed(self, folders: List[str]):
+        self.config_manager.save_manual_folders(folders)
+        self.organize_config.manual_folders = list(folders)
+
+    def _open_manual_organize(self):
+        if not self.processed_items:
+            self._show_info_dialog("Información", "No hay archivos cargados para organizar.")
+            return
+
+        trash_dir = (self.current_folder / self.config_manager.trash_folder) if self.current_folder else Path("_Papelera")
+        dialog = ManualOrganizeDialog(
+            page=self.page,
+            items=self.processed_items,
+            base_dir=self.current_folder or Path.cwd(),
+            manual_folders=self.config_manager.get_manual_folders(),
+            rename_config=self.rename_config,
+            trash_folder=trash_dir,
+            on_finished=self._on_manual_organize_finished,
+            on_folders_updated=self._on_manual_folders_changed,
+            auto_advance=True,
+        )
+        dialog.show()
+
+    def _on_manual_organize_finished(self, reviewed_items: List[Tuple[FileItem, StepAction]]):
+        if not self.current_folder:
+            return
+
+        trash_dir = self.current_folder / self.config_manager.trash_folder
+        modified, discarded, errors = self.undo_manager.apply_reviewed_batch(
+            reviewed_items=reviewed_items,
+            trash_folder=trash_dir,
+        )
+
+        if errors:
+            err_msg = "\n".join(errors[:5])
+            self._show_info_dialog("Aviso en Organización Manual", f"Ocurrieron errores durante el proceso:\n{err_msg}")
+        else:
+            self._show_info_dialog(
+                "Organización Manual Completada",
+                f"Operación finalizada con éxito:\n\n"
+                f"• {modified} archivo(s) organizados y/o renombrados.\n"
+                f"• {discarded} archivo(s) movidos a '{trash_dir.name}'.\n\n"
+                "Puedes usar el botón 'Deshacer' en cualquier momento si necesitas revertir los cambios.",
             )
         self._reload_folder()
 

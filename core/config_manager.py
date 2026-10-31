@@ -42,6 +42,14 @@ DEFAULT_IGNORED: List[str] = [
     "_Papelera",
 ]
 
+DEFAULT_MANUAL_FOLDERS: List[str] = [
+    "Documentos",
+    "Imágenes",
+    "Facturas",
+    "Trabajo",
+    "Personal",
+]
+
 DEFAULT_SETTINGS: dict = {
     "categories": DEFAULT_CATEGORIES,
     "ignored_patterns": DEFAULT_IGNORED,
@@ -49,6 +57,7 @@ DEFAULT_SETTINGS: dict = {
     "unorganized_folder": "Otros",
     "duplicates_folder": "_Duplicados",
     "trash_folder": "_Papelera",
+    "manual_folders": DEFAULT_MANUAL_FOLDERS,
     "confirm_before_apply": True,
     "max_text_preview_size_kb": 512,
 }
@@ -141,3 +150,30 @@ class ConfigManager:
     @property
     def max_text_preview_size_kb(self) -> int:
         return int(self.settings.get("max_text_preview_size_kb", 512))
+
+    def get_manual_folders(self) -> List[str]:
+        """Returns the list of custom manual organization target folders."""
+        folders = self.settings.get("manual_folders", DEFAULT_MANUAL_FOLDERS)
+        if not isinstance(folders, list):
+            return list(DEFAULT_MANUAL_FOLDERS)
+        # Deduplicate while preserving order and stripping whitespace
+        seen = set()
+        clean_folders = []
+        for f in folders:
+            f_clean = str(f).strip()
+            if f_clean and f_clean not in seen:
+                seen.add(f_clean)
+                clean_folders.append(f_clean)
+        return clean_folders or list(DEFAULT_MANUAL_FOLDERS)
+
+    def save_manual_folders(self, folders: List[str]):
+        """Persists custom manual organization target folders to settings."""
+        seen = set()
+        clean_folders = []
+        for f in folders:
+            f_clean = str(f).strip()
+            if f_clean and f_clean not in seen:
+                seen.add(f_clean)
+                clean_folders.append(f_clean)
+        self.settings["manual_folders"] = clean_folders
+        self.save_settings(self.settings)

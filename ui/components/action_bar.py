@@ -1,5 +1,5 @@
 """Action bar component containing execution, preview, and undo buttons in Flet."""
-from typing import Callable
+from typing import Callable, Optional
 import flet as ft
 
 from ui.theme import (
@@ -23,12 +23,14 @@ class ActionBar(ft.Container):
         on_apply: Callable[[], None],
         on_undo: Callable[[], None],
         on_step_review: Callable[[], None],
+        on_manual_organize: Optional[Callable[[], None]] = None,
     ):
         super().__init__()
         self.on_refresh = on_refresh
         self.on_apply = on_apply
         self.on_undo = on_undo
         self.on_step_review = on_step_review
+        self.on_manual_organize = on_manual_organize
 
         self._build_widgets()
 
@@ -40,39 +42,50 @@ class ActionBar(ft.Container):
             expand=True,
         )
 
-        self.btn_refresh = ft.OutlinedButton(
-            "Actualizar",
+        self.btn_refresh = ft.IconButton(
             icon=ft.Icons.REFRESH,
+            tooltip="Actualizar lista de archivos",
+            icon_color=COLOR_TEXT_PRIMARY,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=8),
                 side=ft.BorderSide(1, COLOR_BORDER_DARK),
-                color=COLOR_TEXT_PRIMARY,
             ),
             on_click=lambda _: self.on_refresh(),
         )
 
-        self.btn_undo = ft.OutlinedButton(
-            "Deshacer",
+        self.btn_undo = ft.IconButton(
             icon=ft.Icons.UNDO,
+            tooltip="Deshacer última operación",
             disabled=True,
+            icon_color=COLOR_TEXT_PRIMARY,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=8),
                 side=ft.BorderSide(1, COLOR_BORDER_DARK),
-                color=COLOR_TEXT_PRIMARY,
             ),
             on_click=lambda _: self.on_undo(),
         )
 
-        self.btn_step_review = ft.OutlinedButton(
-            "Revisión Paso a Paso",
-            icon=ft.Icons.CHECKLIST_RTL,
+        self.btn_manual_organize = ft.IconButton(
+            icon=ft.Icons.DRIVE_FILE_MOVE_OUTLINED,
+            tooltip="Organización Manual (recorrer archivo por archivo)",
             disabled=True,
+            icon_color=COLOR_TEXT_PRIMARY,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=8),
                 side=ft.BorderSide(1, COLOR_BORDER_DARK),
-                color=COLOR_TEXT_PRIMARY,
             ),
-            tooltip="Inspeccionar archivos uno por uno con vista previa y elegir conservar, modificar o eliminar",
+            on_click=lambda _: self.on_manual_organize() if self.on_manual_organize else None,
+        )
+
+        self.btn_step_review = ft.IconButton(
+            icon=ft.Icons.CHECKLIST_RTL,
+            tooltip="Revisión Paso a Paso",
+            disabled=True,
+            icon_color=COLOR_TEXT_PRIMARY,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, COLOR_BORDER_DARK),
+            ),
             on_click=lambda _: self.on_step_review(),
         )
 
@@ -95,6 +108,7 @@ class ActionBar(ft.Container):
                 self.summary_text,
                 self.btn_refresh,
                 self.btn_undo,
+                self.btn_manual_organize,
                 self.btn_step_review,
                 self.btn_apply,
             ],
@@ -104,12 +118,13 @@ class ActionBar(ft.Container):
 
     def update_state(self, modified_count: int, conflict_count: int, can_undo: bool, total_files: int = 0):
         self.btn_undo.disabled = not can_undo
+        self.btn_manual_organize.disabled = (total_files == 0)
         self.btn_step_review.disabled = (total_files == 0)
 
         if conflict_count > 0:
             self.btn_apply.disabled = True
             self.btn_apply.content = "Hay Conflictos"
-            self.summary_text.value = f"{conflict_count} conflicto(s) detectado(s). Resuelvelos para continuar."
+            self.summary_text.value = f"{conflict_count} conflicto(s) detectado(s). Resuélvelos para continuar."
             self.summary_text.color = COLOR_DANGER
         elif modified_count > 0:
             self.btn_apply.disabled = False

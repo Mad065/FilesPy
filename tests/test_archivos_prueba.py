@@ -185,6 +185,73 @@ class TestArchivosPruebaIntegration(unittest.TestCase):
         self.assertTrue(orig_keep.exists())
         self.assertTrue(orig_discard.exists())
 
+    def test_06_manual_organize_workflow(self):
+        from ui.components.manual_organize_dialog import ManualOrganizeDialog
+
+        dir_org = self.temp_prueba / "01_para_organizar"
+        self.app.folder_bar.set_folder(dir_org)
+
+        trash_dir = dir_org / self.app.config_manager.trash_folder
+        dialog = ManualOrganizeDialog(
+            page=self.mock_page,
+            items=self.app.processed_items,
+            base_dir=dir_org,
+            manual_folders=["Facturas_2026", "Fotos_Familia"],
+            rename_config=self.app.rename_config,
+            trash_folder=trash_dir,
+            on_finished=self.app._on_manual_organize_finished,
+            on_folders_updated=self.app._on_manual_folders_changed,
+            auto_advance=True,
+        )
+
+        # File 0: set manual name and select Facturas_2026
+        dialog.txt_filename.value = "manual_renamed_0.pdf"
+        dialog._on_name_input_changed(None)
+        dialog._on_folder_selected("Facturas_2026")
+
+        # File 1: auto-name and select Fotos_Familia
+        dialog._apply_auto_name()
+        dialog._on_folder_selected("Fotos_Familia")
+
+        # File 2: keep unchanged (skip)
+        dialog._skip_current_file()
+
+        item0 = self.app.processed_items[0]
+        item1 = self.app.processed_items[1]
+        item2 = self.app.processed_items[2]
+
+        orig0 = item0.original_path
+        orig1 = item1.original_path
+        orig2 = item2.original_path
+
+        dest0 = (dir_org / "Facturas_2026" / "manual_renamed_0.pdf").resolve()
+        dest1 = (dir_org / "Fotos_Familia" / dialog.new_names[1]).resolve()
+
+        reviewed = [
+            (self.app.processed_items[i], dialog.decisions[i])
+            for i in range(len(self.app.processed_items))
+        ]
+        self.app.processed_items[0].target_folder = dialog.target_folders[0]
+        self.app.processed_items[0].new_name = dialog.new_names[0]
+        self.app.processed_items[1].target_folder = dialog.target_folders[1]
+        self.app.processed_items[1].new_name = dialog.new_names[1]
+
+        mod, disc, errs = self.app.undo_manager.apply_reviewed_batch(reviewed, trash_dir)
+        self.assertEqual(errs, [])
+        self.assertEqual(mod, 2)
+
+        self.assertTrue(dest0.exists())
+        self.assertTrue(dest1.exists())
+        self.assertTrue(orig2.exists())
+
+        # Test Undo
+        restored, undo_errs = self.app.undo_manager.undo_last()
+        self.assertEqual(undo_errs, [])
+        self.assertEqual(restored, 2)
+        self.assertTrue(orig0.exists())
+        self.assertTrue(orig1.exists())
+        self.assertTrue(orig2.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

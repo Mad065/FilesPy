@@ -84,7 +84,24 @@ def apply_organization_rules(
                 date_str = "Fecha_Desconocida"
             item.target_folder = base_dir / date_str
 
+        elif config.mode == "manual":
+            # In manual mode, retain existing target_folder if explicitly set, else parent
+            if not getattr(item, "target_folder", None):
+                item.target_folder = item.original_path.parent
+
         else:  # "none"
             item.target_folder = item.original_path.parent
 
     return items
+
+
+def assign_manual_target(item: FileItem, folder_name: str, base_dir: Path) -> Path:
+    """Assigns item's target_folder to base_dir / folder_name."""
+    base = Path(base_dir).resolve()
+    clean_name = folder_name.strip().strip("/\\")
+    if clean_name:
+        target = base / clean_name
+    else:
+        target = base
+    item.target_folder = target
+    return target
