@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller pillow
+          pip install -r requirements.txt pyinstaller pillow certifi
 
       - name: Generate App Icons
         run: |
@@ -48,10 +48,13 @@ jobs:
       # ----------------------------------------------------
       - name: Build Windows Executable & Installer
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           pyinstaller packaging/FilesPy.spec --clean --noconfirm
-          mkdir installer_output
-          powershell -Command "Compress-Archive -Path 'dist\FilesPy\*' -DestinationPath 'installer_output\FilesPy-Windows-x64.zip' -Force"
+          if (-not (Test-Path -Path "installer_output")) {
+              New-Item -ItemType Directory -Path "installer_output" | Out-Null
+          }
+          Compress-Archive -Path "dist\FilesPy\*" -DestinationPath "installer_output\FilesPy-Windows-x64.zip" -Force
           
       - name: Compile Windows Inno Setup Installer
         if: runner.os == 'Windows'

@@ -5,13 +5,34 @@ import os
 import sys
 
 block_cipher = None
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(SPEC), "."))
+
+# Determine project root robustly regardless of invocation method
+if "SPECPATH" in globals() and SPECPATH:
+    spec_dir = os.path.abspath(SPECPATH)
+elif "SPEC" in globals() and SPEC:
+    spec_dir = os.path.dirname(os.path.abspath(SPEC))
+else:
+    spec_dir = os.path.dirname(os.path.abspath(__file__))
+
+if os.path.basename(spec_dir).lower() == "packaging":
+    PROJECT_ROOT = os.path.abspath(os.path.join(spec_dir, ".."))
+elif os.path.exists(os.path.join(spec_dir, "main.py")):
+    PROJECT_ROOT = spec_dir
+else:
+    PROJECT_ROOT = os.path.abspath(os.getcwd())
+
+if not os.path.exists(os.path.join(PROJECT_ROOT, "main.py")) and os.path.exists(os.path.join(os.getcwd(), "main.py")):
+    PROJECT_ROOT = os.path.abspath(os.getcwd())
 
 # Assets and resources to bundle
 datas = [
     (os.path.join(PROJECT_ROOT, "assets"), "assets"),
-    (os.path.join(PROJECT_ROOT, "settings.json"), "."),
 ]
+settings_path = os.path.join(PROJECT_ROOT, "settings.json")
+if os.path.exists(settings_path):
+    datas.append((settings_path, "."))
+
+binaries = []
 
 # Hidden imports required by dynamic Flet / PIL components
 hiddenimports = [
@@ -45,6 +66,16 @@ hiddenimports = [
     "ui.components.manual_organize_dialog",
 ]
 
+# Collect all dynamic Flet wheels, flutter engine, and client binaries
+try:
+    from PyInstaller.utils.hooks import collect_all
+    flet_datas, flet_binaries, flet_hidden = collect_all("flet")
+    datas += flet_datas
+    binaries += flet_binaries
+    hiddenimports += flet_hidden
+except Exception:
+    pass
+
 # Select proper icon per operating system
 if sys.platform == "win32":
     icon_path = os.path.join(PROJECT_ROOT, "assets", "icons", "app_icon.ico")
@@ -56,7 +87,7 @@ else:
 a = Analysis(
     [os.path.join(PROJECT_ROOT, "main.py")],
     pathex=[PROJECT_ROOT],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
