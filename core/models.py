@@ -73,11 +73,14 @@ class RenameConfig:
 @dataclass
 class OrganizeConfig:
     """Configuration for file sorting/organization into folders."""
-    mode: str = "none"  # "none", "by_extension", "by_category", "by_date"
+    mode: str = "none"  # "none", "by_extension", "by_category", "by_date", "manual"
     date_format: str = "%Y/%m"  # e.g., 2026/10
     custom_category_map: dict = field(default_factory=dict)
     no_extension_folder: str = "SIN_EXTENSION"
     unorganized_folder: str = "Otros"
+    manual_folders: list = field(default_factory=list)
+    auto_advance_on_folder_select: bool = True
+    auto_rename_on_step: bool = False
 
 
 @dataclass
@@ -88,6 +91,8 @@ class AppSettings:
     no_extension_folder: str = "SIN_EXTENSION"
     unorganized_folder: str = "Otros"
     duplicates_folder: str = "_Duplicados"
+    trash_folder: str = "_Papelera"
+    manual_folders: list = field(default_factory=lambda: ["Documentos", "Imágenes", "Facturas", "Trabajo", "Personal"])
     confirm_before_apply: bool = True
     max_text_preview_size_kb: int = 512
 

@@ -1,0 +1,11 @@
+{
+  "app_name": "FilesPy Test",
+  "version": "1.0.0",
+  "debug": true,
+  "port": 8080,
+  "endpoints": [
+    "/api/status",
+    "/api/files",
+    "/api/organize"
+  ]
+}

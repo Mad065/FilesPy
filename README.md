@@ -76,6 +76,15 @@ El diseno prioriza la integridad de datos: ninguna operacion modifica archivos f
 - Control de navegacion *Anterior / Siguiente* y atajos para aplicar o conservar los archivos restantes en lote.
 - Registro total en el motor de transacciones: todo descarte o cambio puede revertirse con el boton **Deshacer**.
 
+### 9. Organización Manual Personalizada y Nombrado Híbrido
+- **Definición Dinámica de Carpetas**: Configura una lista personalizada de carpetas de destino (`Facturas`, `Fotos/Familia`, `Trabajo`, etc.) tanto desde el panel de organización como al vuelo durante el recorrido con el botón `＋ Agregar Carpeta`.
+- **Recorrido Guiado Archivo por Archivo**: Vista previa interactiva con miniaturas (Pillow) o fragmentos de texto, metadatos y asignación de destino con un solo clic.
+- **Nombrado Híbrido**:
+  - **Manual**: Edición libre en campo de texto con validación de nombres válidos.
+  - **Automático**: Botones dedicados para aplicar reglas activas de renombrado (`⚡ Auto-nombrar`), normalización instantánea (`snake_case`) o restaurar el nombre original (`↺ Original`).
+- **Clasificación Veloz (Auto-avance)**: Opción para avanzar inmediatamente al siguiente archivo tras seleccionar la carpeta de destino.
+- **Totalmente Reversible**: Integración con `UndoManager` para deshacer todas las asignaciones y cambios aplicados con un clic.
+
 ---
 
 ## Arquitectura del Sistema
