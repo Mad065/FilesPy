@@ -23,6 +23,11 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+*.dmg
+*.pkg
+*.exe
+*.tar.gz
+installer_output/
 
 # Local workspace files
 .idea/

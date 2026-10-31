@@ -4,7 +4,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![GUI Framework](https://img.shields.io/badge/GUI-Flet%20(Flutter)-f40048.svg)](https://flet.dev/)
-[![Tests](https://img.shields.io/badge/tests-24%20passed-success.svg)](tests/)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](#instaladores-y-descargas)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -15,10 +15,10 @@
 - [Caracteristicas Principales](#caracteristicas-principales)
 - [Arquitectura del Sistema](#arquitectura-del-sistema)
 - [Estructura del Proyecto](#estructura-del-proyecto)
+- [Instaladores y Descargas](#instaladores-y-descargas)
 - [Requisitos Previos](#requisitos-previos)
 - [Instalacion y Configuracion](#instalacion-y-configuracion)
 - [Guia de Uso](#guia-de-uso)
-- [Pruebas Automatizadas](#pruebas-automatizadas)
 - [Licencia](#licencia)
 
 ---
@@ -133,6 +133,8 @@ FilesPy/
 ├── settings.json                # Configuraciones persistentes del usuario
 ├── .gitignore                   # Exclusiones de Git
 ├── README.md                    # Documentacion tecnica
+├── assets/                      # Iconos y recursos graficos
+│   └── icons/                   # Iconos vectoriales y ejecutables (.ico, .icns, .png)
 ├── core/                        # Modulos de logica de negocio
 │   ├── __init__.py
 │   ├── config_manager.py        # Gestion y persistencia de configuracion JSON
@@ -153,19 +155,21 @@ FilesPy/
 │       ├── duplicate_panel.py   # Panel de analisis y aislamiento de duplicados
 │       ├── folder_bar.py        # Barra de ruta, subcarpetas y configuracion
 │       ├── inspector_panel.py   # Panel lateral de miniaturas y metadatos
+│       ├── manual_organize_dialog.py # Dialogo interactivo de clasificacion y nombrado hibrido
 │       ├── organize_panel.py    # Formulario de modos de organizacion
 │       ├── preview_table.py     # Tabla interactiva con verificacion visual
 │       ├── rename_panel.py      # Formulario de reglas de renombrado
-│       └── settings_dialog.py   # Modal de edicion de categorias y preferencias
-└── tests/                       # Suite de pruebas automatizadas
-    ├── __init__.py
-    ├── test_config_manager.py   # Pruebas de persistencia y defaults
-    ├── test_conflicts.py        # Pruebas de deteccion de colisiones
-    ├── test_duplicates.py       # Pruebas de huellas digitales SHA-256
-    ├── test_integration.py      # Pruebas end-to-end de pipeline y rollback
-    ├── test_organizer.py        # Pruebas de distribucion por carpetas
-    ├── test_renamer.py          # Pruebas de reglas de renombrado
-    └── test_undo.py             # Pruebas de transacciones reversibles
+│       ├── settings_dialog.py   # Modal de edicion de categorias y preferencias
+│       └── step_review_dialog.py # Revision paso a paso interactiva
+├── packaging/                   # Archivos de configuracion de empaquetado
+│   ├── FilesPy.spec             # Especificacion PyInstaller multiplataforma
+│   ├── FilesPy.desktop          # Lanzador de escritorio para Linux
+│   ├── inno_setup.iss           # Asistente instalador para Windows (Inno Setup)
+│   └── icon_generator.py        # Utilidad generadora de iconos .ico/.icns/.png
+└── scripts/                     # Scripts de compilacion local automatizada
+    ├── build_macos.sh           # Generador de .app y .dmg para macOS
+    ├── build_windows.bat        # Generador de .exe y Setup para Windows
+    └── build_linux.sh           # Generador de .tar.gz y .desktop para Linux
 ```
 
 ---
@@ -226,22 +230,54 @@ python main.py
 
 ---
 
-## Pruebas Automatizadas
+## Instaladores y Descargas
 
-El proyecto incluye 21 pruebas unitarias y de integracion que validan cada componente critico en entornos temporales aislados:
+FilesPy esta disponible como ejecutable e instalador independiente para **Windows**, **macOS** y **Linux**, sin necesidad de tener Python instalado.
 
+### Descarga de Versiones Compiladas
+
+| Sistema Operativo | Formato de Paquete | Descripcion |
+| :--- | :--- | :--- |
+| **Windows** (x64) | `FilesPy-Windows-Setup.exe` / `.zip` | Asistente de instalacion Inno Setup con accesos directos o version portable. |
+| **macOS** (Intel / Apple Silicon) | `FilesPy-macOS.dmg` / `.zip` | Imagen de disco arrastrar-y-soltar lista para mover a `/Applications`. |
+| **Linux** (x64) | `FilesPy-Linux-x64.tar.gz` | Paquete portable con instalador de acceso directo `.desktop` y lanzador `install.sh`. |
+
+Puedes descargar los paquetes mas recientes desde la seccion de **[Releases de GitHub](https://github.com/Mad065/FilesPy/releases)**.
+
+---
+
+### Compilacion Local de Instaladores
+
+Si deseas compilar los paquetes de instalacion por tu cuenta en tu sistema local:
+
+#### En macOS:
 ```bash
-python -m unittest discover -s tests -p "test_*.py" -v
+chmod +x scripts/build_macos.sh
+./scripts/build_macos.sh
 ```
+*Genera:* `dist/FilesPy.app`, `installer_output/FilesPy-macOS.dmg` e `installer_output/FilesPy-macOS.zip`.
 
-Cobertura de pruebas:
-- Reglas de reemplazo simple, insensible a mayusculas y expresiones regulares.
-- Formateo de prefijos, sufijos y secuencias numeradas con ceros a la izquierda.
-- Validacion y prevencion de colisiones de nombres o rutas preexistentes.
-- Deteccion confiable de duplicados por hash SHA-256.
-- Clasificacion en carpetas por extension y por categorias personalizadas.
-- Modulo de persistencia y normalizacion de extensiones (`settings.json`).
-- Flujo completo de transacciones en disco y rollback seguro con `UndoManager`.
+#### En Windows:
+```cmd
+scripts\build_windows.bat
+```
+*Genera:* `dist\FilesPy\FilesPy.exe`, `installer_output\FilesPy-Windows-x64.zip` y (si se dispone de Inno Setup) `installer_output\FilesPy-Windows-Setup.exe`.
+
+#### En Linux:
+```bash
+chmod +x scripts/build_linux.sh
+./scripts/build_linux.sh
+```
+*Genera:* `installer_output/FilesPy-Linux-x64.tar.gz` con el lanzador `install.sh`.
+
+---
+
+### Integracion Continua (CI/CD Automatizado)
+
+El repositorio incluye un flujo automatizado en **GitHub Actions** (`.github/workflows/build-installers.yml`):
+- Se activa automaticamente al publicar una etiqueta de version (`v*`) o mediante disparo manual (`workflow_dispatch`).
+- Compila concurrentemente en maquinas virtuales nativas de Windows, macOS y Linux.
+- Genera y adjunta todos los instaladores finales al Release de GitHub.
 
 ---
 

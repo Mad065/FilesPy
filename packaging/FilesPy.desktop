@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=FilesPy
+GenericName=Organizador y Renombrador de Archivos
+Comment=Gestor y renombrador inteligente por lotes con interfaz moderna
+Exec=FilesPy
+Icon=filespy
+Terminal=false
+Categories=Utility;FileTools;FileManager;
+StartupNotify=true
