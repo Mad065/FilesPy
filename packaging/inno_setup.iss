@@ -2,7 +2,7 @@
 ; Compiles dist/FilesPy into FilesPy-Setup.exe
 
 #define MyAppName "FilesPy"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "0.1.0"
 #define MyAppPublisher "FilesPy Team"
 #define MyAppURL "https://github.com/Mad065/FilesPy"
 #define MyAppExeName "FilesPy.exe"
