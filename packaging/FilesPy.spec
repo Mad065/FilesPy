@@ -5,7 +5,7 @@ import os
 import sys
 
 block_cipher = None
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(SPEC), "."))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(SPEC), ".."))
 
 # Assets and resources to bundle
 datas = [
