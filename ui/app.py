@@ -1,17 +1,26 @@
 """Main Application Layout and Logic for FilesPy (Flet)."""
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import flet as ft
 
+from core.automation import AutomationManager
 from core.conflicts import validate_conflicts
 from core.config_manager import ConfigManager
-from core.models import FileItem, OrganizeConfig, RenameConfig, StepAction
+from core.models import (
+    FileItem,
+    FolderMonitorStatus,
+    MonitoredFolderRule,
+    OrganizeConfig,
+    RenameConfig,
+    StepAction,
+)
 from core.organizer import apply_organization_rules
 from core.renamer import apply_rename_rules
 from core.scanner import scan_directory
 from core.undo import UndoManager
 
 from ui.components.action_bar import ActionBar
+from ui.components.automation_dialog import AutomationMonitorDialog
 from ui.components.duplicate_panel import DuplicatePanel
 from ui.components.folder_bar import FolderBar
 from ui.components.inspector_panel import InspectorPanel
@@ -61,14 +70,23 @@ class FilesPyApp:
             unorganized_folder=self.config_manager.unorganized_folder,
             manual_folders=self.config_manager.get_manual_folders(),
         )
+        self.active_automation_dialog: Optional[AutomationMonitorDialog] = None
+        self.automation_manager = AutomationManager(
+            config_manager=self.config_manager,
+            undo_manager=self.undo_manager,
+            on_state_changed=self._on_automation_state_changed,
+        )
 
         self._build_ui()
+        self._update_automation_header_badge()
+        self.automation_manager.start_background_monitor()
 
     def _build_ui(self):
         # 1. Top Folder Bar
         self.folder_bar = FolderBar(
             on_folder_selected=self._on_folder_changed,
             on_open_settings=self._open_settings_dialog,
+            on_open_automation=self._open_automation_dialog,
         )
         if hasattr(self.page, "services"):
             self.page.services.append(self.folder_bar.file_picker)
@@ -228,6 +246,110 @@ class FilesPyApp:
             page=self.page,
             config_manager=self.config_manager,
             on_saved=self._on_settings_saved,
+        )
+        dialog.show()
+
+    def _open_automation_dialog(self):
+        dialog = AutomationMonitorDialog(
+            page=self.page,
+            automation_manager=self.automation_manager,
+            file_picker=self.folder_bar.file_picker,
+            on_open_manual_for_rule=self._open_manual_for_monitored_rule,
+            on_load_folder_in_main=self._load_folder_from_automation,
+            on_undo_requested=self._on_undo_changes,
+            current_folder=self.current_folder,
+        )
+        self.active_automation_dialog = dialog
+        dialog.show()
+
+    def _load_folder_from_automation(self, folder: Path):
+        self.folder_bar.set_folder(folder)
+
+    def _update_automation_header_badge(self):
+        rules = self.automation_manager.get_rules()
+        enabled_rules = [r for r in rules if r.enabled]
+        pending_folders = sum(1 for r in enabled_rules if r.status == FolderMonitorStatus.PENDING)
+        in_progress_folders = sum(1 for r in enabled_rules if r.status == FolderMonitorStatus.IN_PROGRESS)
+        self.folder_bar.update_automation_status(
+            total_monitored=len(enabled_rules),
+            pending_folders=pending_folders,
+            in_progress_folders=in_progress_folders,
+        )
+
+    def _on_automation_state_changed(self):
+        self._update_automation_header_badge()
+        if self.active_automation_dialog:
+            try:
+                self.active_automation_dialog.refresh_view()
+            except Exception:
+                pass
+        # Update undo button availability and refresh current folder if it's monitored
+        if self.current_folder:
+            monitored_paths = {Path(r.path).resolve() for r in self.automation_manager.get_rules() if r.path}
+            if self.current_folder.resolve() in monitored_paths:
+                self._reload_folder()
+                return
+        self.action_bar.btn_undo.disabled = not self.undo_manager.can_undo()
+        safe_update(self.action_bar)
+
+    def _open_manual_for_monitored_rule(self, rule: MonitoredFolderRule):
+        folder_path = Path(rule.path).resolve()
+        if not folder_path.exists() or not folder_path.is_dir():
+            self._show_info_dialog("Error", f"La carpeta '{rule.display_name}' no existe o no está accesible.")
+            return
+
+        items = self.automation_manager.get_pending_items_for_rule(rule)
+        if not items:
+            # Fallback to all top-level candidate files in case user wants to re-organize
+            items = self.automation_manager.build_candidate_items(rule)
+
+        if not items:
+            self._show_info_dialog(
+                "Carpeta Ordenada",
+                f"La carpeta '{rule.display_name}' no tiene archivos pendientes en su raíz para ordenar manualmente.",
+            )
+            return
+
+        trash_dir = folder_path / self.config_manager.trash_folder
+        ren_cfg = self.automation_manager.build_rename_config_for_rule(rule)
+
+        def on_manual_rule_finished(reviewed_items: List[Tuple[FileItem, StepAction]]):
+            modified, discarded, errors = self.undo_manager.apply_reviewed_batch(
+                reviewed_items=reviewed_items,
+                trash_folder=trash_dir,
+            )
+            kept_paths = [
+                it.original_path for it, act in reviewed_items if act == StepAction.KEEP
+            ]
+            self.automation_manager.mark_manual_run_completed(
+                rule_id=rule.id,
+                modified_count=modified,
+                discarded_count=discarded,
+                kept_paths=kept_paths,
+            )
+            if self.current_folder and self.current_folder.resolve() == folder_path:
+                self._reload_folder()
+            else:
+                self.action_bar.btn_undo.disabled = not self.undo_manager.can_undo()
+                safe_update(self.action_bar)
+
+            # Re-open automation monitor dialog so the user sees the updated "YA ESTÁ ORDENADO" status
+            self._open_automation_dialog()
+
+        def on_rule_folders_updated(new_folders: List[str]):
+            rule.manual_folders = list(new_folders)
+            self.automation_manager.add_or_update_rule(rule)
+
+        dialog = ManualOrganizeDialog(
+            page=self.page,
+            items=items,
+            base_dir=folder_path,
+            manual_folders=rule.manual_folders or self.config_manager.get_manual_folders(),
+            rename_config=ren_cfg,
+            trash_folder=trash_dir,
+            on_finished=on_manual_rule_finished,
+            on_folders_updated=on_rule_folders_updated,
+            auto_advance=True,
         )
         dialog.show()
 
@@ -471,7 +593,11 @@ class FilesPyApp:
 
         def do_undo(e):
             self.page.pop_dialog()
+            restored_paths = [
+                op.source_path for op in self.undo_manager.history[-1].operations
+            ] if self.undo_manager.history else []
             restored, errors = self.undo_manager.undo_last()
+            self.automation_manager.mark_files_undone(restored_paths)
             if errors:
                 err_msg = "\n".join(errors[:5])
                 self._show_info_dialog("Aviso al Deshacer", f"Se restauraron {restored} archivo(s), pero hubo errores:\n{err_msg}")

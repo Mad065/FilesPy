@@ -84,6 +84,13 @@ def apply_organization_rules(
                 date_str = "Fecha_Desconocida"
             item.target_folder = base_dir / date_str
 
+        elif config.mode == "custom_subfolder":
+            sub = (getattr(config, "custom_subfolder", "") or "").strip().strip("/\\")
+            if sub:
+                item.target_folder = base_dir / sub
+            else:
+                item.target_folder = base_dir
+
         elif config.mode == "manual":
             # In manual mode, retain existing target_folder if explicitly set, else parent
             if not getattr(item, "target_folder", None):

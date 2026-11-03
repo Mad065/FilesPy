@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 from typing import Dict, List, Optional, Set
+from core.models import MonitoredFolderRule
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "settings.json"
 
@@ -60,6 +61,8 @@ DEFAULT_SETTINGS: dict = {
     "manual_folders": DEFAULT_MANUAL_FOLDERS,
     "confirm_before_apply": True,
     "max_text_preview_size_kb": 512,
+    "monitored_folders": [],
+    "automation_active": True,
 }
 
 
@@ -176,4 +179,31 @@ class ConfigManager:
                 seen.add(f_clean)
                 clean_folders.append(f_clean)
         self.settings["manual_folders"] = clean_folders
+        self.save_settings(self.settings)
+
+    @property
+    def automation_active(self) -> bool:
+        return bool(self.settings.get("automation_active", True))
+
+    def set_automation_active(self, active: bool):
+        self.settings["automation_active"] = bool(active)
+        self.save_settings(self.settings)
+
+    def get_monitored_folders(self) -> List[MonitoredFolderRule]:
+        """Returns the list of configured MonitoredFolderRule objects."""
+        raw_list = self.settings.get("monitored_folders", [])
+        if not isinstance(raw_list, list):
+            return []
+        rules: List[MonitoredFolderRule] = []
+        for item in raw_list:
+            if isinstance(item, dict) and item.get("path"):
+                try:
+                    rules.append(MonitoredFolderRule.from_dict(item))
+                except Exception:
+                    continue
+        return rules
+
+    def save_monitored_folders(self, rules: List[MonitoredFolderRule]):
+        """Persists the list of MonitoredFolderRule objects to settings.json."""
+        self.settings["monitored_folders"] = [r.to_dict() for r in rules]
         self.save_settings(self.settings)

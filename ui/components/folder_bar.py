@@ -6,24 +6,29 @@ import flet as ft
 from ui.theme import (
     COLOR_BORDER_DARK,
     COLOR_CARD_DARK,
+    COLOR_INFO,
     COLOR_PRIMARY,
+    COLOR_SUCCESS,
     COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
+    COLOR_WARNING,
     safe_update,
 )
 
 
 class FolderBar(ft.Container):
-    """Top bar for selecting directory, toggling recursive scan, and opening settings."""
+    """Top bar for selecting directory, toggling recursive scan, and opening settings/automation."""
 
     def __init__(
         self,
         on_folder_selected: Callable[[Path, bool], None],
         on_open_settings: Callable[[], None],
+        on_open_automation: Optional[Callable[[], None]] = None,
     ):
         super().__init__()
         self.on_folder_selected = on_folder_selected
         self.on_open_settings = on_open_settings
+        self.on_open_automation = on_open_automation
         self.current_folder: Optional[Path] = None
 
         # Controls
@@ -66,6 +71,21 @@ class FolderBar(ft.Container):
             color=COLOR_TEXT_MUTED,
         )
 
+        self.btn_automation = ft.OutlinedButton(
+            "Automatización y Monitor",
+            icon=ft.Icons.BOLT_ROUNDED,
+            tooltip="Abrir ventana de Automatización y Monitorización de Carpetas",
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                bgcolor=COLOR_CARD_DARK,
+                side=ft.BorderSide(1, COLOR_PRIMARY),
+                color=COLOR_TEXT_PRIMARY,
+                padding=ft.Padding.symmetric(horizontal=10, vertical=6),
+                text_style=ft.TextStyle(size=11.5, weight=ft.FontWeight.W_600),
+            ),
+            on_click=lambda _: self.on_open_automation() if self.on_open_automation else None,
+        )
+
         self.btn_settings = ft.IconButton(
             icon=ft.Icons.SETTINGS_OUTLINED,
             tooltip="Configuracion",
@@ -86,6 +106,7 @@ class FolderBar(ft.Container):
                 self.path_field,
                 self.switch_recursive,
                 self.count_text,
+                self.btn_automation,
                 self.btn_settings,
             ],
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -128,3 +149,24 @@ class FolderBar(ft.Container):
         else:
             self.count_text.value = f"{total} archivos"
         safe_update(self.count_text)
+
+    def update_automation_status(
+        self,
+        total_monitored: int,
+        pending_folders: int,
+        in_progress_folders: int,
+    ):
+        """Updates the Automation & Monitor button label and border color in the top bar."""
+        if total_monitored == 0:
+            self.btn_automation.content = "Automatización y Monitor"
+            self.btn_automation.style.side = ft.BorderSide(1, COLOR_PRIMARY)
+        elif in_progress_folders > 0:
+            self.btn_automation.content = f"Monitor ({in_progress_folders} en proceso...)"
+            self.btn_automation.style.side = ft.BorderSide(1.5, COLOR_INFO)
+        elif pending_folders > 0:
+            self.btn_automation.content = f"Monitor ({pending_folders} pendiente{'s' if pending_folders != 1 else ''})"
+            self.btn_automation.style.side = ft.BorderSide(1.5, COLOR_WARNING)
+        else:
+            self.btn_automation.content = f"Monitor ({total_monitored} ordenada{'s' if total_monitored != 1 else ''})"
+            self.btn_automation.style.side = ft.BorderSide(1.5, COLOR_SUCCESS)
+        safe_update(self.btn_automation)
