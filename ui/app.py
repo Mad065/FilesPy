@@ -152,6 +152,8 @@ class FilesPyApp:
         self.preview_table = PreviewTable(
             on_item_inspected=self._on_item_inspected,
             on_selection_toggled=self._on_selection_toggled,
+            page=self.page,
+            config_manager=self.config_manager,
         )
         self.center_container = ft.Container(
             content=self.preview_table,
@@ -355,6 +357,7 @@ class FilesPyApp:
 
     def _on_settings_saved(self):
         self.organize_panel.update_categories_info(self.config_manager.get_categories_dict())
+        self.preview_table.update_visible_columns(self.config_manager.get_visible_columns())
         self._reload_folder()
 
     def _on_folder_changed(self, folder: Path, recursive: bool):
@@ -393,6 +396,10 @@ class FilesPyApp:
                 selected=is_selected,
                 status=it.status,
                 status_message=it.status_message,
+                created_time=it.created_time,
+                access_time=it.access_time,
+                permissions_mode=it.permissions_mode,
+                _cached_dimensions=it._cached_dimensions,
             )
             items.append(clone)
 

@@ -1,8 +1,13 @@
 """Data models for FilesPy file organization and batch renaming."""
 from dataclasses import dataclass, field
 from enum import Enum
+import mimetypes
 from pathlib import Path
+import stat as stat_module
 from typing import List, Tuple, Optional
+
+
+IMAGE_METADATA_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff", ".ico"}
 
 
 class FileStatus(str, Enum):
@@ -39,6 +44,10 @@ class FileItem:
     selected: bool = True
     status: FileStatus = FileStatus.UNCHANGED
     status_message: str = ""
+    created_time: float = 0.0
+    access_time: float = 0.0
+    permissions_mode: int = 0
+    _cached_dimensions: Optional[str] = field(default=None, repr=False, compare=False)
 
     @property
     def target_path(self) -> Path:
@@ -58,6 +67,68 @@ class FileItem:
             FileStatus.CONFLICT_EXISTS,
             FileStatus.ERROR,
         )
+
+    @property
+    def stem(self) -> str:
+        """Filename without extension."""
+        return self.original_path.stem
+
+    @property
+    def original_folder(self) -> str:
+        """Parent folder name of the original path."""
+        return self.original_path.parent.name or "/"
+
+    @property
+    def original_full_path(self) -> str:
+        """Full original file path string."""
+        return str(self.original_path)
+
+    @property
+    def target_full_path(self) -> str:
+        """Full destination file path string."""
+        return str(self.target_path)
+
+    @property
+    def is_hidden(self) -> bool:
+        """Returns True if the file is hidden (starts with '.')."""
+        return self.original_name.startswith(".")
+
+    @property
+    def mime_type(self) -> str:
+        """Returns the guessed MIME type for the file."""
+        guessed, _ = mimetypes.guess_type(self.original_name)
+        return guessed or "application/octet-stream"
+
+    @property
+    def permissions_str(self) -> str:
+        """Returns Unix-style permission string (e.g. '-rw-r--r--')."""
+        mode = self.permissions_mode
+        if not mode:
+            try:
+                mode = self.original_path.stat().st_mode
+                self.permissions_mode = mode
+            except OSError:
+                return "-"
+        try:
+            return stat_module.filemode(mode)
+        except Exception:
+            return "-"
+
+    def get_dimensions(self) -> str:
+        """Returns lazily cached pixel dimensions (WxH) for image files, or '-'."""
+        if self._cached_dimensions is not None:
+            return self._cached_dimensions
+        if self.extension.lower() not in IMAGE_METADATA_EXTENSIONS:
+            self._cached_dimensions = "-"
+            return "-"
+        try:
+            from PIL import Image
+            with Image.open(self.original_path) as img:
+                w, h = img.size
+                self._cached_dimensions = f"{w}x{h}"
+        except Exception:
+            self._cached_dimensions = "-"
+        return self._cached_dimensions
 
 
 @dataclass
@@ -197,6 +268,9 @@ class AppSettings:
     manual_folders: list = field(default_factory=lambda: ["Documentos", "Imágenes", "Facturas", "Trabajo", "Personal"])
     confirm_before_apply: bool = True
     max_text_preview_size_kb: int = 512
+    visible_columns: list = field(
+        default_factory=lambda: ["original_name", "new_name", "target_folder", "size", "status"]
+    )
 
 
 @dataclass

@@ -2,7 +2,14 @@
 from typing import Callable, Dict, List
 import flet as ft
 
-from core.config_manager import ConfigManager, DEFAULT_SETTINGS, normalize_extension
+from core.config_manager import (
+    COLUMN_DEFINITIONS,
+    ConfigManager,
+    DEFAULT_SETTINGS,
+    DEFAULT_VISIBLE_COLUMNS,
+    normalize_extension,
+)
+from ui.components.preview_table import GROUP_LABELS
 from ui.theme import (
     COLOR_BORDER_DARK,
     COLOR_CARD_DARK,
@@ -182,6 +189,76 @@ class SettingsDialog:
             spacing=10,
         )
 
+        # TAB 4: Visible Columns
+        current_visible = set(self.config_manager.get_visible_columns())
+        self.column_checkboxes: Dict[str, ft.Checkbox] = {}
+        cols_scroll_list = ft.Column(spacing=8, scroll=ft.ScrollMode.AUTO, expand=True)
+
+        grouped_defs: Dict[str, List[dict]] = {}
+        for col_def in COLUMN_DEFINITIONS:
+            grp = col_def.get("group", "basicas")
+            grouped_defs.setdefault(grp, []).append(col_def)
+
+        for grp_key, grp_title in GROUP_LABELS.items():
+            defs_in_grp = grouped_defs.get(grp_key, [])
+            if not defs_in_grp:
+                continue
+
+            grp_items = ft.Column(spacing=4)
+            for col_def in defs_in_grp:
+                cid = col_def["id"]
+                chk = ft.Checkbox(
+                    value=(cid in current_visible),
+                    active_color=COLOR_PRIMARY,
+                )
+                self.column_checkboxes[cid] = chk
+                grp_items.controls.append(
+                    ft.Container(
+                        content=ft.Row(
+                            controls=[
+                                chk,
+                                ft.Column(
+                                    controls=[
+                                        ft.Text(col_def["label"], size=11.5, weight=ft.FontWeight.W_600, color=COLOR_TEXT_PRIMARY),
+                                        ft.Text(col_def.get("description", ""), size=10, color=COLOR_TEXT_MUTED),
+                                    ],
+                                    spacing=1,
+                                    expand=True,
+                                ),
+                            ],
+                            spacing=6,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
+                        padding=ft.Padding.symmetric(horizontal=8, vertical=3),
+                        bgcolor=COLOR_CARD_DARK,
+                        border_radius=6,
+                        border=ft.Border.all(1, COLOR_BORDER_DARK),
+                    )
+                )
+
+            cols_scroll_list.controls.append(
+                ft.Column(
+                    controls=[
+                        ft.Text(grp_title, size=11, weight=ft.FontWeight.W_600, color=COLOR_PRIMARY),
+                        grp_items,
+                    ],
+                    spacing=3,
+                )
+            )
+
+        tab_columns_content = ft.Column(
+            controls=[
+                ft.Text(
+                    "Selecciona las propiedades de los archivos que deseas mostrar en la lista principal:",
+                    size=11,
+                    color=COLOR_TEXT_MUTED,
+                ),
+                cols_scroll_list,
+            ],
+            spacing=6,
+            expand=True,
+        )
+
         # Settings Content Switcher (SegmentedButton)
         self.settings_content = ft.Container(content=tab_ext_content, expand=True)
 
@@ -194,14 +271,17 @@ class SettingsDialog:
                 self.settings_content.content = tab_ignored_content
             elif val == "general":
                 self.settings_content.content = tab_general_content
+            elif val == "columns":
+                self.settings_content.content = tab_columns_content
             safe_update(self.settings_content)
 
         self.settings_nav = ft.SegmentedButton(
             selected=["categories"],
             allow_empty_selection=False,
             segments=[
-                ft.Segment(value="categories", label=ft.Text("Categorias y Extensiones", size=11), icon=ft.Icons.CATEGORY_OUTLINED),
-                ft.Segment(value="ignored", label=ft.Text("Archivos Ignorados", size=11), icon=ft.Icons.BLOCK_OUTLINED),
+                ft.Segment(value="categories", label=ft.Text("Categorias", size=11), icon=ft.Icons.CATEGORY_OUTLINED),
+                ft.Segment(value="ignored", label=ft.Text("Ignorados", size=11), icon=ft.Icons.BLOCK_OUTLINED),
+                ft.Segment(value="columns", label=ft.Text("Columnas Visibles", size=11), icon=ft.Icons.VIEW_COLUMN_OUTLINED),
                 ft.Segment(value="general", label=ft.Text("Opciones Generales", size=11), icon=ft.Icons.TUNE_OUTLINED),
             ],
             on_change=on_settings_nav_changed,
@@ -222,8 +302,8 @@ class SettingsDialog:
                     spacing=6,
                     expand=True,
                 ),
-                width=640,
-                height=360,
+                width=680,
+                height=390,
             ),
             actions=[
                 ft.TextButton("Restablecer Valores", on_click=lambda _: self._on_reset()),
@@ -343,6 +423,9 @@ class SettingsDialog:
         self.entry_dup.value = DEFAULT_SETTINGS.get("duplicates_folder", "_Duplicados")
         self.switch_confirm.value = bool(DEFAULT_SETTINGS.get("confirm_before_apply", True))
 
+        for cid, chk in self.column_checkboxes.items():
+            chk.value = cid in DEFAULT_VISIBLE_COLUMNS
+
         safe_update(self.dialog)
 
     def _on_save(self):
@@ -350,14 +433,24 @@ class SettingsDialog:
         raw_ignored = (self.ignored_field.value or "").strip().splitlines()
         clean_ignored = [p.strip() for p in raw_ignored if p.strip()]
 
-        new_settings = {
-            "categories": self.working_categories,
-            "ignored_patterns": clean_ignored,
-            "no_extension_folder": self.entry_no_ext.value.strip() if self.entry_no_ext.value else "SIN_EXTENSION",
-            "unorganized_folder": self.entry_unorg.value.strip() if self.entry_unorg.value else "Otros",
-            "duplicates_folder": self.entry_dup.value.strip() if self.entry_dup.value else "_Duplicados",
-            "confirm_before_apply": bool(self.switch_confirm.value),
-        }
+        selected_cols = [
+            c["id"] for c in COLUMN_DEFINITIONS if self.column_checkboxes.get(c["id"], ft.Checkbox()).value
+        ]
+        if not selected_cols:
+            selected_cols = list(DEFAULT_VISIBLE_COLUMNS)
+
+        new_settings = dict(self.working_settings)
+        new_settings.update(
+            {
+                "categories": self.working_categories,
+                "ignored_patterns": clean_ignored,
+                "no_extension_folder": self.entry_no_ext.value.strip() if self.entry_no_ext.value else "SIN_EXTENSION",
+                "unorganized_folder": self.entry_unorg.value.strip() if self.entry_unorg.value else "Otros",
+                "duplicates_folder": self.entry_dup.value.strip() if self.entry_dup.value else "_Duplicados",
+                "confirm_before_apply": bool(self.switch_confirm.value),
+                "visible_columns": selected_cols,
+            }
+        )
         self.config_manager.save_settings(new_settings)
         self.page.pop_dialog()
         self.on_saved()

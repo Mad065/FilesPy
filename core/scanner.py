@@ -62,9 +62,15 @@ def scan_directory(
             stat = path.stat()
             size = stat.st_size
             mtime = stat.st_mtime
+            ctime = getattr(stat, "st_birthtime", stat.st_ctime)
+            atime = stat.st_atime
+            mode = stat.st_mode
         except OSError:
             size = 0
             mtime = 0.0
+            ctime = 0.0
+            atime = 0.0
+            mode = 0
 
         item = FileItem(
             original_path=path,
@@ -77,6 +83,9 @@ def scan_directory(
             selected=True,
             status=FileStatus.UNCHANGED,
             status_message="",
+            created_time=ctime,
+            access_time=atime,
+            permissions_mode=mode,
         )
         results.append(item)
 

@@ -18,6 +18,7 @@ desktop.ini
 .pytest_cache/
 .coverage
 htmlcov/
+archivos_de_prueba/
 
 # Build & Distribution
 build/
