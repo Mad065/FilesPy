@@ -133,9 +133,25 @@ class FileItem:
 
 @dataclass
 class RenameConfig:
-    """Configuration for batch renaming."""
+    """Configuration for batch renaming (macOS Finder style + legacy rules)."""
+    # Primary macOS Batch Rename mode: "replace", "add_text", "format"
+    mode: str = "replace"
+
+    # 1. Reemplazar texto ("replace")
     find_text: str = ""
     replace_text: str = ""
+
+    # 2. Agregar texto ("add_text")
+    add_text: str = ""
+    add_location: str = "after"  # "after" (Después del nombre) | "before" (Antes del nombre)
+
+    # 3. Formato ("format")
+    format_style: str = "name_counter"  # "name_counter", "name_index", "name_date"
+    format_location: str = "after"  # "after" (Después del nombre) | "before" (Antes del nombre)
+    custom_format: str = "Archivo"
+    counter_start: int = 1
+
+    # Advanced / legacy compatibility options
     match_case: bool = False
     use_regex: bool = False
     prefix: str = ""
