@@ -24,6 +24,7 @@ class ActionBar(ft.Container):
         on_undo: Callable[[], None],
         on_step_review: Callable[[], None],
         on_manual_organize: Optional[Callable[[], None]] = None,
+        on_batch_rename: Optional[Callable[[], None]] = None,
     ):
         super().__init__()
         self.on_refresh = on_refresh
@@ -31,6 +32,7 @@ class ActionBar(ft.Container):
         self.on_undo = on_undo
         self.on_step_review = on_step_review
         self.on_manual_organize = on_manual_organize
+        self.on_batch_rename = on_batch_rename
 
         self._build_widgets()
 
@@ -63,6 +65,18 @@ class ActionBar(ft.Container):
                 side=ft.BorderSide(1, COLOR_BORDER_DARK),
             ),
             on_click=lambda _: self.on_undo(),
+        )
+
+        self.btn_batch_rename = ft.IconButton(
+            icon=ft.Icons.DRIVE_FILE_RENAME_OUTLINE,
+            tooltip="Renombrar por lotes (Estilo Mac)",
+            disabled=True,
+            icon_color=COLOR_TEXT_PRIMARY,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                side=ft.BorderSide(1, COLOR_BORDER_DARK),
+            ),
+            on_click=lambda _: self.on_batch_rename() if self.on_batch_rename else None,
         )
 
         self.btn_manual_organize = ft.IconButton(
@@ -108,6 +122,7 @@ class ActionBar(ft.Container):
                 self.summary_text,
                 self.btn_refresh,
                 self.btn_undo,
+                self.btn_batch_rename,
                 self.btn_manual_organize,
                 self.btn_step_review,
                 self.btn_apply,
@@ -118,6 +133,7 @@ class ActionBar(ft.Container):
 
     def update_state(self, modified_count: int, conflict_count: int, can_undo: bool, total_files: int = 0):
         self.btn_undo.disabled = not can_undo
+        self.btn_batch_rename.disabled = (total_files == 0)
         self.btn_manual_organize.disabled = (total_files == 0)
         self.btn_step_review.disabled = (total_files == 0)
 

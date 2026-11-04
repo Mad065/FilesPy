@@ -21,6 +21,7 @@ from core.undo import UndoManager
 
 from ui.components.action_bar import ActionBar
 from ui.components.automation_dialog import AutomationMonitorDialog
+from ui.components.batch_rename_dialog import BatchRenameDialog
 from ui.components.duplicate_panel import DuplicatePanel
 from ui.components.folder_bar import FolderBar
 from ui.components.inspector_panel import InspectorPanel
@@ -94,7 +95,10 @@ class FilesPyApp:
             self.page.overlay.append(self.folder_bar.file_picker)
 
         # 2. Left Column: Rules Navigation (SegmentedButton)
-        self.rename_panel = RenamePanel(on_change=self._on_rename_rules_changed)
+        self.rename_panel = RenamePanel(
+            on_change=self._on_rename_rules_changed,
+            on_open_mac_dialog=self._open_batch_rename_dialog,
+        )
         self.organize_panel = OrganizePanel(
             on_change=self._on_organize_rules_changed,
             on_start_manual_organize=self._open_manual_organize,
@@ -173,6 +177,7 @@ class FilesPyApp:
             on_undo=self._on_undo_changes,
             on_step_review=self._open_step_review,
             on_manual_organize=self._open_manual_organize,
+            on_batch_rename=self._open_batch_rename_dialog,
         )
 
         # Draggable Splitters for Resizing Panels
@@ -411,6 +416,12 @@ class FilesPyApp:
         self.processed_items = items
         self.preview_table.set_items(self.processed_items)
 
+        first_selected = next((it for it in items if it.selected), items[0] if items else None)
+        if first_selected:
+            self.rename_panel.update_sample(first_selected.original_name, first_selected.modified_time)
+        else:
+            self.rename_panel.update_sample(None, None)
+
         modified_count = sum(1 for it in items if it.selected and it.is_modified and not it.has_conflict)
         conflict_count = sum(1 for it in items if it.selected and it.has_conflict)
 
@@ -426,6 +437,26 @@ class FilesPyApp:
         self.rename_config = config
         self._run_pipeline()
 
+    def _open_batch_rename_dialog(self):
+        dialog = BatchRenameDialog(
+            page=self.page,
+            items=self.processed_items,
+            initial_config=self.rename_config,
+            on_rename_confirmed=self._on_batch_rename_confirmed,
+        )
+        dialog.show()
+
+    def _on_batch_rename_confirmed(self, config: RenameConfig):
+        self.rename_config = config
+        self.rename_panel.set_config(config)
+        self._run_pipeline()
+        items_to_apply = [
+            it for it in self.processed_items
+            if it.selected and it.is_modified and not it.has_conflict
+        ]
+        if items_to_apply:
+            self._on_apply_changes()
+
     def _on_organize_rules_changed(self, config: OrganizeConfig):
         self.organize_config = config
         self._run_pipeline()
@@ -435,6 +466,7 @@ class FilesPyApp:
 
     def _on_item_inspected(self, item: FileItem):
         self.inspector.inspect_file(item)
+        self.rename_panel.update_sample(item.original_name, item.modified_time)
 
     def _on_isolate_duplicates(self, duplicates_to_move: List[FileItem]):
         if not self.current_folder:
